@@ -108,7 +108,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                                            )
         ax.set_title(' ', fontsize=gap_between_figures)
 
-        plt.savefig(f'./{animated_contourplot_filename}_frame_{z_index}.png', 
+        plt.savefig(f'./TRY_images/MPSP_TRY_prod_{z_data[z_index]}.png', 
                     transparent = False,  
                     facecolor = 'white',
                     bbox_inches='tight',
@@ -122,7 +122,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
           
     frames = []
     for z_index in range(len(z_data)):
-        image = imageio.v2.imread(f'./{animated_contourplot_filename}_frame_{z_index}.png')
+        image = imageio.v2.imread(f'./TRY_images/MPSP_TRY_prod_{z_data[z_index]}.png')
         frames.append(image)
     
     
