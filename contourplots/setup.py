@@ -15,11 +15,10 @@ setup(
     author='Sarang S. Bhagwat',
     author_email='sarang.bhagwat.git@gmail.com',
     license='MIT',
-    packages=['contourplots'],
+    # packages=['contourplots'],
     install_requires=['matplotlib>=3.5.2',
                       'numpy>=1.23.4',       
                       'imageio>=2.19.3',
-                      'mpl_toolkits',
                       ],
 
     classifiers=[
