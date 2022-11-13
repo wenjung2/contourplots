@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import imageio
-
+import os
 
 def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   x_data,
@@ -43,7 +43,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   gap_between_figures=20., 
                                   fps=3, # animation frames (z values traversed) per second
                                   n_loops='inf', # the number of times the animated contourplot should loop animation over z; infinite by default
-                                  animated_contourplot_filename='animated_contourplot'
+                                  animated_contourplot_filename='animated_contourplot',
+                                  keep_frames=False, # leaves frame PNG files undeleted after running; False by default
                                  ):
     results = np.array(w_data_vs_x_y_at_multiple_z)
     
@@ -137,5 +138,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                         fps=fps,
                         loop=n_loops,
                         ) 
-        
     
+    if not keep_frames:
+        for z_index in range(len(z_data)):
+            os.remove(f'./{animated_contourplot_filename}_frame_{z_index}.png')
+
