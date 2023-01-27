@@ -6,7 +6,7 @@
 # https://github.com/sarangbhagwat/contourplots/blob/main/LICENSE
 # for license details.
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 __author__ = 'Sarang S. Bhagwat'
 
 # %% Initialize ContourPlots 
@@ -14,7 +14,12 @@ __author__ = 'Sarang S. Bhagwat'
 from . import utils
 
 animated_contourplot = utils.animated_contourplot
+box_and_whiskers_plot = utils.box_and_whiskers_plot
+stacked_bar_plot = utils.stacked_bar_plot
 
 __all__ = (
-    'utils', 'animated_contourplot',
+    'utils', 
+    'animated_contourplot', 
+    'box_and_whiskers_plot', 
+    'stacked_bar_plot',
 )

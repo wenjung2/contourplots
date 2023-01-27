@@ -12,6 +12,8 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import imageio
 import os
+from matplotlib.ticker import AutoMinorLocator, LinearLocator, FixedLocator
+from matplotlib.ticker import FuncFormatter
 
 def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   x_data,
@@ -143,3 +145,273 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         for z_index in range(len(z_data)):
             os.remove(f'./{animated_contourplot_filename}_frame_{z_index}.png')
 
+
+#%%
+def box_and_whiskers_plot(uncertainty_data, 
+                          baseline_value=None, 
+                          range_for_comparison=(None, None),
+                          values_for_comparison=[],
+                          n_minor_ticks=1,
+                          y_label='Metric',
+                          y_units='units',
+                          y_ticks=[],
+                          boxcolor="#A97802",
+                          save_file=True,
+                          filename='box_and_whiskers_plot',
+                          dpi=600,
+                          fig_width=1.5,
+                          fig_height=4.,
+                          box_width=1.5,
+                          ):
+    plt.rcParams['font.sans-serif'] = "Arial"
+    plt.rcParams['font.size'] = "14"
+
+    gridspec_kw={'height_ratios': [1, 20]},
+
+    fig, axs = plt.subplots(1, 1, constrained_layout=True, 
+                            # gridspec_kw=gridspec_kw,
+                            )
+    ax = axs
+    # ax.set_facecolor("white")
+    
+    fig.set_figwidth(fig_width)
+    fig.set_figheight(fig_height)
+
+
+    ax.boxplot(x=uncertainty_data, patch_artist=True,
+                        widths=box_width, whis=[5, 95], vert=True, flierprops = {'marker': ''},
+                        boxprops={'facecolor': boxcolor,
+                                   'edgecolor':'black',
+                                   'linewidth':0.8},
+                         medianprops={'color':'black',
+                                      'linewidth':0.8},
+                         whiskerprops={'linewidth':0.8},
+                         zorder=99)
+
+    ax.plot(1, baseline_value, c='k', 
+            # label='.',
+            marker='D', 
+                markersize=6, 
+                markerfacecolor='w',
+                  markeredgewidth=0.8,
+                 zorder=100)
+
+    if not (range_for_comparison==() or range_for_comparison==[] or range_for_comparison==None):
+        ax.fill_between([0, 1, 2], [range_for_comparison[0]], [range_for_comparison[1]], color="#c0c1c2", alpha=1., zorder=1)
+
+    if not (values_for_comparison==() or values_for_comparison==[] or values_for_comparison==None):
+        1
+    ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+
+
+    ax.tick_params(
+        axis='x',          # changes apply to the x-axis
+        which='both',      # both major and minor ticks are affected
+        bottom=False,      # ticks along the bottom edge are off
+        top=False,         # ticks along the top edge are off
+        labelbottom=False)
+
+    ax.tick_params(
+        axis='y',          # changes apply to the x-axis
+        which='both',      # both major and minor ticks are affected
+        direction='inout',
+        # right=True,
+        width=1,
+        )
+
+    ax.tick_params(
+        axis='y',          
+        which='major',      
+        length=5,
+        )
+
+    ax.tick_params(
+        axis='y',          
+        which='minor',      
+        length=3,
+        )
+
+    ax2 = ax.twinx()
+    
+    
+    if not y_ticks==[]:
+        ax.set_yticks(y_ticks)
+        ax2.set_yticks(y_ticks)
+        l = ax.get_ylim()
+        l2 = ax2.get_ylim()
+        f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
+        ticks = f(ax.get_yticks())
+        ax2.yaxis.set_major_locator(FixedLocator(ticks))
+        ax2.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+    
+    else:
+        ax2.set_yticks(ax.get_y_ticks())
+        l = ax.get_ylim()
+        l2 = ax2.get_ylim()
+        f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
+        ticks = f(ax.get_yticks())
+        ax2.yaxis.set_major_locator(FixedLocator(ticks))
+        ax2.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+        
+        # loc = LinearLocator(numticks = len(y_ticks))
+        # ax2.set_yticks(y_ticks)
+        # ax.yaxis.set_major_locator(loc)
+        # ax2.yaxis.set_major_locator(loc)
+        # nticks = len(y_ticks)
+        # ax.yaxis.set_major_locator(LinearLocator(nticks))
+        # ax2.yaxis.set_major_locator(loc)
+        
+        # ax2.set_yticks(np.linspace(ax2.get_yticks()[0], ax2.get_yticks()[-1], len(ax.get_yticks())))
+        
+    ax2.tick_params(
+        axis='y',          
+        which='both',      
+        direction='in',
+        # right=True,
+        labelright=False,
+        width=1,
+        )
+    
+    ax.set_ylabel(y_label + " [" + y_units + "]", 
+                  {'fontname':'Calibri'}, fontsize=14, 
+               # fontweight='bold',
+               )
+
+
+
+
+    plt.savefig(filename+'.png', dpi=dpi)
+
+#%%
+def stacked_bar_plot(dataframe, 
+                       y_ticks=[], x_ticks=[], 
+                       colors=None, 
+                       colormap=None,
+                       metric_total_values=[], metric_units=[],
+                       n_minor_ticks=1,
+                       y_label='', y_units='',
+                       linewidth=0.8,
+                       filename='stacked_bar_plot',
+                       dpi=600,
+                       fig_width=7,
+                       fig_height=5.5):
+    
+    plt.rcParams['font.sans-serif'] = "Arial"
+    plt.rcParams['font.size'] = "14"
+    
+    ax = dataframe.T.plot(kind='bar', stacked=True, edgecolor='k', linewidth=linewidth,
+                          color=colors,
+                          colormap=colormap,
+                          # facecolor="white",
+                           # use_index=False,
+                          rot=0,
+                          )
+    
+    
+    ax.set_facecolor("white")
+    
+    fig = plt.gcf()
+    
+    fig.set_figwidth(fig_width)
+    fig.set_figheight(fig_height)
+    
+    
+    ax.set_yticks(y_ticks,)
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: f'{val}%'))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+    
+    ax.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left', edgecolor='white')
+
+    ax.set_ylabel(y_label + " [" + y_units + "]", fontsize=14)
+    
+    
+    # ax.set_xlabel(x_labels, fontsize=14)
+    import textwrap
+    def wrap_labels(ax, width, break_long_words=False):
+        labels = []
+        for label in ax.get_xticklabels():
+            text = label.get_text()
+            labels.append(textwrap.fill(text, width=width,
+                          break_long_words=break_long_words))
+        ax.set_xticklabels(labels, rotation=0, fontsize=14, weight='bold')
+    wrap_labels(ax,10)
+    
+    
+    ax.axhline(y=0,  color='k', linestyle='-', linewidth=linewidth)
+    
+    ax.tick_params(
+        axis='y',          # changes apply to the x-axis
+        which='both',      # both major and minor ticks are affected
+        direction='inout',
+        # right=True,
+        width=1,
+        )
+
+    ax.tick_params(
+        axis='y',          
+        which='major',      
+        length=5,
+        )
+
+    ax.tick_params(
+        axis='y',          
+        which='minor',      
+        length=3,
+        )
+    
+    
+    ax.tick_params(
+        axis='x',          # changes apply to the x-axis
+        which='both',      # both major and minor ticks are affected
+        direction='inout',
+        # right=True,
+        width=1,
+        )
+    
+    
+    ax2 = ax.twinx()
+    
+    
+    if not y_ticks==[]:
+        ax.set_yticks(y_ticks)
+        ax2.set_yticks(y_ticks)
+        l = ax.get_ylim()
+        l2 = ax2.get_ylim()
+        f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
+        ticks = f(ax.get_yticks())
+        ax2.yaxis.set_major_locator(FixedLocator(ticks))
+        ax2.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+    
+    else:
+        ax2.set_yticks(ax.get_y_ticks())
+        l = ax.get_ylim()
+        l2 = ax2.get_ylim()
+        f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
+        ticks = f(ax.get_yticks())
+        ax2.yaxis.set_major_locator(FixedLocator(ticks))
+        ax2.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+        
+    ax2.tick_params(
+        axis='y',          
+        which='both',      
+        direction='in',
+        # right=True,
+        labelright=False,
+        width=1,
+        )
+    
+    
+    # plt.tight_layout()
+    plt.savefig(filename+'.png', dpi=dpi, bbox_inches='tight',
+                facecolor=fig.get_facecolor(),
+                transparent=False)
+    
+    # patterns = [ "/" , "\\" , "|" , "-" , "+" , "x", "o", "O", ".", "*" ]
+    # bars = ax.bar([0,5], [0,5])
+    # for bar, pattern in zip(bars, patterns):
+        # bar.set_hatch(pattern)
+    
+    # plt.xlabel(list(df.columns), weight='bold')
+
+        
+    
