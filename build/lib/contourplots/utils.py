@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# ContourPlots: A toolkit for generating multi-dimensional plots easily, usefully, and legibly.
+# Copyright (C) 2022-2023, Sarang Bhagwat <sarang.bhagwat.git@gmail.com>
+# 
+# This module is under the MIT open-source license. See 
+# https://github.com/sarangbhagwat/contourplots/blob/main/LICENSE
+# for license details.
 """
 Created on Fri Nov 11 10:15:45 2022
 
@@ -18,6 +24,9 @@ from matplotlib.ticker import FuncFormatter
 from matplotlib.container import BarContainer
 import textwrap
 import itertools
+
+defaults_dict ={'colors':
+                {'Guest_Group_TEA_Breakdown': ['#7BBD84', '#F7C652', '#63C6CE', '#94948C', '#734A8C', '#D1C0E1', '#648496', '#B97A57', '#D1C0E1', '#F8858A', '#F8858A', ]}}
 
 def wrap_labels(ax, width, break_long_words=False, fontsize=14):
     labels = []

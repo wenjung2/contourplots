@@ -76,10 +76,11 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   cbar_n_minor_ticks = 4,
                                   comparison_range=[],
                                   comparison_range_hatch_pattern='///',
+                                  default_fontsize=12.,
                                     ):
     results = np.array(w_data_vs_x_y_at_multiple_z)
     plt.rcParams['font.sans-serif'] = "Arial"
-    plt.rcParams['font.size'] = "14"
+    plt.rcParams['font.size'] = str(default_fontsize)
     def create_frame(z_index):
         fig, axs = plt.subplots(2, 1, constrained_layout=True, 
                                 gridspec_kw=gridspec_kw)
@@ -512,6 +513,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
 #%%
 def stacked_bar_plot(dataframe, 
                        y_ticks=[], x_ticks=[], 
+                       ylim=[],
                        colors=None, 
                        hatch_patterns=('\\', '//', 'x',  '|',),
                        colormap=None,
@@ -663,7 +665,10 @@ def stacked_bar_plot(dataframe,
         width=1,
         )
     
-    
+    if ylim: 
+        ax.set_ylim(ylim)
+    else:
+        ax.set_ylim([min(y_ticks), max(y_ticks)])
     # plt.tight_layout()
     
     
