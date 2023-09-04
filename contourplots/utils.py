@@ -36,6 +36,23 @@ def wrap_labels(ax, width, break_long_words=False, fontsize=14):
                       break_long_words=break_long_words))
     ax.set_xticklabels(labels, rotation=0, fontsize=fontsize, weight='bold')
 
+def limit_contour(ax, x,y,z,clevs, xlim=None, ylim=None, **kwargs): # from https://stackoverflow.com/questions/45844745/moving-contour-labels-after-limiting-plot-size
+    x,y = np.meshgrid(x,y)    
+    mask = np.ones(x.shape).astype(bool)
+    if xlim:
+        mask = mask & (x>=xlim[0]) & (x<=xlim[1])
+    if ylim:
+        mask = mask & (y>=ylim[0]) & (y<=ylim[1])
+    xm = np.ma.masked_where(~mask , x)
+    ym = np.ma.masked_where(~mask , y)
+    # breakpoint()
+    zm = np.ma.masked_where(~mask , z)
+
+    cs = ax.contour(xm,ym,zm, clevs,**kwargs)
+    if xlim: ax.set_xlim(xlim) #Limit the x-axis
+    if ylim: ax.set_ylim(ylim)
+    ax.clabel(cs,inline=True,fmt='%3.0d')
+    
 def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   x_data,
                                   y_data,
@@ -79,6 +96,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   default_fontsize=12.,
                                     ):
     results = np.array(w_data_vs_x_y_at_multiple_z)
+    
+    
     plt.rcParams['font.sans-serif'] = "Arial"
     plt.rcParams['font.size'] = str(default_fontsize)
     def create_frame(z_index):
@@ -111,15 +130,44 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         if cmap_over_color is not None:
             cmap.set_over(cmap_over_color)
         
-            
-        im = ax.contourf(x_data, y_data, results[z_index],
+        results_data = results[z_index]
+
+        
+        ## Ensure contour labels remain inside plot area
+        # limit_contour(ax=ax,
+        #               x=x_data,
+        #               y=y_data,
+        #               z=results_data,
+        #               clevs=w_levels,
+        #               xlim=(x_ticks[0],x_ticks[-1]),
+        #               ylim=(y_ticks[0],y_ticks[-1]),
+        #               )
+        ##
+        
+        ##
+        
+        x_data_i, y_data_i = np.meshgrid(x_data, y_data)    
+        results_data_i = results_data
+        
+        mask = np.ones(x_data_i.shape).astype(bool)
+        mask = mask & (x_data_i>=x_ticks[0]) & (x_data_i<=x_ticks[-1])
+        mask = mask & (y_data_i>=y_ticks[0]) & (y_data_i<=y_ticks[-1])
+        
+        x_data_i = np.ma.masked_where(~mask , x_data_i)
+        y_data_i = np.ma.masked_where(~mask , y_data_i)
+        results_data_i = np.ma.masked_where(~mask , results_data_i)
+        
+        # results_data = np.ma.masked_where(~mask , results_data)
+
+        ##
+        
+                
+        im = ax.contourf(x_data_i, y_data_i, results_data_i,
                           cmap=cmap,
                          levels=w_levels,
                          extend=extend_cmap
                          
                          )
-        
-        
         
         ax.xaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
@@ -207,20 +255,20 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         # ########--########
         
         if not comparison_range==[]:
-            [m1,n1] = np.where((results[z_index] > comparison_range[0]) & (results[z_index] < comparison_range[1]))
-            # [m2,n2] = np.where(results[z_index] < 7.5)
+            [m1,n1] = np.where((results_data > comparison_range[0]) & (results_data < comparison_range[1]))
+            # [m2,n2] = np.where(results_data < 7.5)
             
-            z1 = np.zeros(results[z_index].shape)
+            z1 = np.zeros(results_data.shape)
             z1[m1,n1] = 99
             
             # print(z1,)
             plt.rcParams['hatch.linewidth'] = 0.6
             plt.rcParams['hatch.color'] = 'white'
-            cs = ax.contourf(x_data, y_data, z1 ,1 , hatches=['', comparison_range_hatch_pattern],  alpha=0.,
+            cs = ax.contourf(x_data_i, y_data_i, z1 ,1 , hatches=['', comparison_range_hatch_pattern],  alpha=0.,
                              # extend=extend_cmap,
                              )
             
-        clines = ax.contour(x_data, y_data, results[z_index],
+        clines = ax.contour(x_data_i, y_data_i, results_data,
                    levels=w_ticks,
                     colors='black',
                    linewidths=w_tick_width)
@@ -233,7 +281,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                   )
         
         if not comparison_range==[]:
-            clines2 = ax.contour(x_data, y_data, results[z_index],
+            clines2 = ax.contour(x_data_i, y_data_i, results_data,
                        levels=comparison_range,
                         colors='white',
                        linewidths=w_tick_width)
@@ -334,7 +382,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
 
 
 #%%
-def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty data (for a single boxplot) or a nested list of iterables of uncertainty data (for multiple plots))
+def box_and_whiskers_plot(uncertainty_data_i, # either an iterable of uncertainty data (for a single boxplot) or a nested list of iterables of uncertainty data (for multiple plots))
                           baseline_values=None, 
                           baseline_locations=[1,], # any number in range 1 - # of boxes (inclusive)
                           baseline_marker_shapes=['D', 'D', 'D'],
