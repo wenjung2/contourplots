@@ -24,9 +24,25 @@ from matplotlib.ticker import FuncFormatter
 from matplotlib.container import BarContainer
 import textwrap
 import itertools
+from math import ceil, floor
 
 defaults_dict ={'colors':
                 {'Guest_Group_TEA_Breakdown': ['#7BBD84', '#F7C652', '#63C6CE', '#94948C', '#734A8C', '#D1C0E1', '#648496', '#B97A57', '#D1C0E1', '#F8858A', '#F8858A', ]}}
+
+map_superscript_numbers = {
+    0: '\u2070',
+    1: '\u00B9',
+    2: '\u00B2',
+    3: '\u00B3',
+    4: '\u2074',
+    5: '\u2075',
+    6: '\u2076',
+    7: '\u2077',
+    8: '\u2078',
+    9: '\u2079',
+    }
+
+map_superscript_str_numbers = {str(k):v for k,v in map_superscript_numbers.items()}
 
 def wrap_labels(ax, width, break_long_words=False, fontsize=14):
     labels = []
@@ -73,7 +89,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   w_tick_width=0.5, # width for labeled, lined contours
                                   fmt_clabel = lambda cvalue: "{:.2f}".format(cvalue), # format of contour labels
                                   gridspec_kw={'height_ratios': [1, 20]},
-                                  fontname={'fontname':'Arial'},
+                                  fontname={'fontname':'Arial Unicode'},
                                   figwidth=3.9,
                                   dpi=600,
                                   cmap='viridis',
@@ -94,11 +110,13 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   comparison_range=[],
                                   comparison_range_hatch_pattern='///',
                                   default_fontsize=12.,
+                                  units_on_newline = (True, True, False, False), # x,y,z,w
                                     ):
     results = np.array(w_data_vs_x_y_at_multiple_z)
     
-    
-    plt.rcParams['font.sans-serif'] = "Arial"
+    if type(cmap)==str:
+        cmap = mpl.colormaps[cmap]
+    plt.rcParams['font.sans-serif'] = "Arial Unicode"
     plt.rcParams['font.size'] = str(default_fontsize)
     def create_frame(z_index):
         fig, axs = plt.subplots(2, 1, constrained_layout=True, 
@@ -113,7 +131,12 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         
         
         ax.xaxis.tick_top()
-        ax.set_xlabel(z_label + " [" + z_units + "]",  
+        units_opening_brackets = [" [", " [", " [", " ["]
+        for i in range(len(units_opening_brackets)):
+            if units_on_newline:
+                units_opening_brackets[i] = "\n["
+                
+        ax.set_xlabel(z_label + units_opening_brackets[2] + z_units + "]",  
                       fontsize=axis_title_fonts['size']['z'],
                       **fontname)
         ax.set_xticks(z_ticks,
@@ -134,17 +157,6 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
 
         
         ## Ensure contour labels remain inside plot area
-        # limit_contour(ax=ax,
-        #               x=x_data,
-        #               y=y_data,
-        #               z=results_data,
-        #               clevs=w_levels,
-        #               xlim=(x_ticks[0],x_ticks[-1]),
-        #               ylim=(y_ticks[0],y_ticks[-1]),
-        #               )
-        ##
-        
-        ##
         
         x_data_i, y_data_i = np.meshgrid(x_data, y_data)    
         results_data_i = results_data
@@ -157,10 +169,6 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         y_data_i = np.ma.masked_where(~mask , y_data_i)
         results_data_i = np.ma.masked_where(~mask , results_data_i)
         
-        # results_data = np.ma.masked_where(~mask , results_data)
-
-        ##
-        
                 
         im = ax.contourf(x_data_i, y_data_i, results_data_i,
                           cmap=cmap,
@@ -168,6 +176,12 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                          extend=extend_cmap
                          
                          )
+        
+        ## Ensure contour labels remain inside plot area
+        ax.set_xlim((x_ticks[0], x_ticks[-1]))
+        ax.set_ylim((y_ticks[0], y_ticks[-1]))
+        ##
+        
         
         ax.xaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
@@ -205,12 +219,16 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             axis='x',          
             which='major',      
             length=7,
+            # right=True,
+            # top=True,
             )
 
         ax.tick_params(
             axis='x',          
             which='minor',      
             length=3.5,
+            # right=True,
+            # top=True,
             )
         
         # ax2 = ax.twinx()
@@ -255,10 +273,10 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         # ########--########
         
         if not comparison_range==[]:
-            [m1,n1] = np.where((results_data > comparison_range[0]) & (results_data < comparison_range[1]))
-            # [m2,n2] = np.where(results_data < 7.5)
+            [m1,n1] = np.where((results_data_i > comparison_range[0]) & (results_data_i < comparison_range[1]))
+            # [m2,n2] = np.where(results_data_i < 7.5)
             
-            z1 = np.zeros(results_data.shape)
+            z1 = np.zeros(results_data_i.shape)
             z1[m1,n1] = 99
             
             # print(z1,)
@@ -268,7 +286,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                              # extend=extend_cmap,
                              )
             
-        clines = ax.contour(x_data_i, y_data_i, results_data,
+        clines = ax.contour(x_data_i, y_data_i, results_data_i,
                    levels=w_ticks,
                     colors='black',
                    linewidths=w_tick_width)
@@ -281,7 +299,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                   )
         
         if not comparison_range==[]:
-            clines2 = ax.contour(x_data_i, y_data_i, results_data,
+            clines2 = ax.contour(x_data_i, y_data_i, results_data_i,
                        levels=comparison_range,
                         colors='white',
                        linewidths=w_tick_width)
@@ -293,10 +311,10 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       colors='black',
                       )
         
-        ax.set_ylabel(y_label + " [" + y_units + "]",  
+        ax.set_ylabel(y_label + units_opening_brackets[1] + y_units + "]",  
                       fontsize=axis_title_fonts['size']['y'],
                       **fontname)
-        ax.set_xlabel(x_label + " [" + x_units + "]", 
+        ax.set_xlabel(x_label + units_opening_brackets[0] + x_units + "]", 
                       fontsize=axis_title_fonts['size']['x'],
                       **fontname)
         
@@ -316,7 +334,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                             cax=cax, 
                      ticks = cbar_ticks)
         
-        cbar.set_label(label=w_label + " [" + w_units + "]", 
+        cbar.set_label(label=w_label + units_opening_brackets[3] + w_units + "]", 
                                               size=axis_title_fonts['size']['w'],
                                               loc='center',
                                               **fontname
@@ -324,6 +342,20 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         
         # cbar.ax.set_minor_locator(AutoMinorLocator(cbar_n_minor_ticks+1))
         cbar.ax.minorticks_on()
+        
+        # set minor ticks
+        curr_major_ticks = [float(i) for i in cbar.get_ticks(minor=False)]
+        n_major_ticks = len(curr_major_ticks)
+        major_tick_step_size = curr_major_ticks[1] - curr_major_ticks[0]
+        minor_tick_step_size = major_tick_step_size/(1+cbar_n_minor_ticks)
+        curr_tick =  curr_major_ticks[0]
+        curr_minor_ticks = []
+        while curr_tick<curr_major_ticks[-1]:
+            curr_tick+=minor_tick_step_size
+            if curr_tick not in curr_major_ticks:
+                curr_minor_ticks.append(curr_tick)
+        cbar.set_ticks(curr_minor_ticks, minor=True)
+        #
         
         cbar.ax.tick_params(
             axis='y',          # changes apply to the x-axis
@@ -382,7 +414,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
 
 
 #%%
-def box_and_whiskers_plot(uncertainty_data_i, # either an iterable of uncertainty data (for a single boxplot) or a nested list of iterables of uncertainty data (for multiple plots))
+def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty data (for a single boxplot) or a nested list of iterables of uncertainty data (for multiple plots))
                           baseline_values=None, 
                           baseline_locations=[1,], # any number in range 1 - # of boxes (inclusive)
                           baseline_marker_shapes=['D', 'D', 'D'],
@@ -410,7 +442,7 @@ def box_and_whiskers_plot(uncertainty_data_i, # either an iterable of uncertaint
                           
                           ):
     n_boxes = 1. if not hasattr(uncertainty_data[0], '__iter__') else len(uncertainty_data)
-    plt.rcParams['font.sans-serif'] = "Arial"
+    plt.rcParams['font.sans-serif'] = "Arial Unicode"
     plt.rcParams['font.size'] = "14"
 
     gridspec_kw={'height_ratios': height_ratios,},
@@ -509,6 +541,8 @@ def box_and_whiskers_plot(uncertainty_data_i, # either an iterable of uncertaint
 
     ax2 = ax.twinx()
     
+    ax.set_ylim(min(y_ticks), max(y_ticks))
+    ax2.set_ylim(min(y_ticks), max(y_ticks))
     
     if not y_ticks==[]:
         ax.set_yticks(y_ticks)
@@ -549,10 +583,11 @@ def box_and_whiskers_plot(uncertainty_data_i, # either an iterable of uncertaint
         )
     
     ax.set_ylabel(y_label + " [" + y_units + "]", 
-                  {'fontname':'Arial'}, fontsize=14, 
+                  {'fontname':'Arial Unicode'}, fontsize=14, 
                # fontweight='bold',
                )
-
+    
+    # ax.set_ylim(min(y_ticks), max(y_ticks))
 
 
 
@@ -572,9 +607,15 @@ def stacked_bar_plot(dataframe,
                        filename='stacked_bar_plot',
                        dpi=600,
                        fig_width=7,
-                       fig_height=5.5*1.1777):
+                       fig_height=5.5*1.1777,
+                       show_totals=False,
+                       totals=[],
+                       sig_figs_for_totals=3,
+                       units_list=[],
+                       totals_label_text=r"$\bfsum:$",
+                       ):
     
-    plt.rcParams['font.sans-serif'] = "Arial"
+    plt.rcParams['font.sans-serif'] = "Arial Unicode"
     plt.rcParams['font.size'] = "14"
     
     ax = dataframe.T.plot(kind='bar', stacked=True, edgecolor='k', linewidth=linewidth,
@@ -719,8 +760,110 @@ def stacked_bar_plot(dataframe,
         ax.set_ylim([min(y_ticks), max(y_ticks)])
     # plt.tight_layout()
     
-    
-
+    if show_totals:
+        def Round_off(N, n): # function Round_off from https://www.geeksforgeeks.org/round-off-number-given-number-significant-digits/#
+            b = N
+            # c = floor(N)
+            # Counting the no. of digits 
+            # to the left of decimal point 
+            # in the given no.
+            i = 0;
+            while(b >= 1):
+                b = b / 10
+                i = i + 1
+            d = n - i
+            b = N
+            b = b * (10**d)
+            e = b + 0.5
+            if (float(e) == float(ceil(b))):
+                f = (ceil(b))
+                h = f - 2
+                if (h % 2 != 0):
+                    e = e - 1
+            j = floor(e)
+            m = (10**d)
+            j = j / m
+            return j
+        
+        def count_no_of_digits_in_str_num(str_num):
+            return len(str_num) - str_num.count('.')
+        
+        def remove_ending_0(str_num):
+            if str_num[-1]=='0':
+                str_num = str_num[:-1]
+            return str_num
+        
+        def remove_ending_decimal_point(str_num):
+            if str_num[-1]=='.':
+                str_num = str_num[:-1]
+            return str_num
+        
+        def get_exp_str_num(str_exp_num):
+            exp_str_exp_num = ''
+            for i in str_exp_num:
+                exp_str_exp_num+=map_superscript_str_numbers[i]
+            return exp_str_exp_num
+        
+        def convert_OOM_notation_e_to_10_in_str_num(str_num):
+            e_notations = ('e+0', 'e+', 'e-0', 'e-')
+            for e_n in e_notations:
+                if e_n in str_num:
+                    e_n_index_in_string = str_num.index(e_n)
+                    str_exp_num = str_num[e_n_index_in_string+len(e_n):]
+                    exp_str_exp_num = get_exp_str_num(str_exp_num)
+                    ten_n = f' \u00D710{exp_str_exp_num}'
+                    str_num = str_num.replace(e_n+str_exp_num, ten_n)
+                else:
+                    pass
+            return str_num
+        
+        def get_rounded_str(num, sig_figs):
+            rounded_str = remove_ending_decimal_point(remove_ending_0(str(Round_off(num,sig_figs))))
+            n_digits = count_no_of_digits_in_str_num(rounded_str)
+            if n_digits<sig_figs:
+                while not n_digits==sig_figs:
+                  rounded_str+='0'  
+                  n_digits+=1
+            else:
+                rounded_str = convert_OOM_notation_e_to_10_in_str_num(f'{num:.{sig_figs}g}')
+            return rounded_str
+        
+        
+        num_x_points = len(dataframe.columns)
+        distance_between_x_points = 1./num_x_points
+        start_x_coord = distance_between_x_points/2.
+        
+        ax.annotate(
+                xy=(start_x_coord-0.75*distance_between_x_points, 
+                1.1), 
+                text=totals_label_text, 
+                # fontsize=14, 
+                ha='center', va='center',
+                xycoords='axes fraction',
+                 # transform=plt.gcf().transFigure,
+                 )
+        
+        
+        for i in range(num_x_points):
+            ax.annotate(
+                    xy=(start_x_coord+i*distance_between_x_points, 
+                    1.1), 
+                    text=get_rounded_str(totals[i], sig_figs_for_totals), 
+                    # fontsize=14, 
+                    ha='center', va='center',
+                    xycoords='axes fraction',
+                     # transform=plt.gcf().transFigure,
+                     )
+            ax.annotate(
+                    xy=(start_x_coord+i*distance_between_x_points, 
+                    1.05), 
+                    text=units_list[i], 
+                    # fontsize=14, 
+                    ha='center', va='center',
+                    xycoords='axes fraction',
+                     # transform=plt.gcf().transFigure,
+                     )
+            
     plt.savefig(filename+'.png', dpi=dpi, bbox_inches='tight',
                 facecolor=fig.get_facecolor(),
                 transparent=False)
