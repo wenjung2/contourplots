@@ -111,7 +111,21 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   comparison_range_hatch_pattern='///',
                                   default_fontsize=12.,
                                   units_on_newline = (True, True, False, False), # x,y,z,w
-                                    ):
+                                  manual_clabels_regular={}, # clabel: (x,y)
+                                  manual_clabels_comparison_range={},# clabel: (x,y)
+                                  contourplot_facecolor=np.array([None, None, None]),
+                                  text_boxes = {}, # str: (x,y)
+                                  additional_points = {}, # (x,y): (markershape, markercolor, markersize)
+                                  additional_vlines = [],
+                                  additional_vline_colors='black',
+                                  additional_vline_linestyles='dashed',
+                                  additional_vline_linewidths=0.8,
+                                  additional_hlines = [],
+                                  additional_hline_colors='black',
+                                  additional_hline_linestyles='dashed',
+                                  additional_hline_linewidths=0.8,
+                                  axis_tick_fontsize=12.,
+                                  ):
     results = np.array(w_data_vs_x_y_at_multiple_z)
     
     if type(cmap)==str:
@@ -148,7 +162,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                 marker=z_marker_type,
                 ms = 7,)
         ax.axes.get_yaxis().set_visible(False)
-        
+        ax.tick_params(labelsize=axis_tick_fontsize)
         ax = axs[1]
         if cmap_over_color is not None:
             cmap.set_over(cmap_over_color)
@@ -187,11 +201,12 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
         # ########--########
         ax.tick_params(
-            axis='y',          # changes apply to the x-axis
+            axis='y',          # changes apply to the y-axis
             which='both',      # both major and minor ticks are affected
             direction='inout',
             # right=True,
             width=0.65,
+            labelsize=axis_tick_fontsize,
             )
 
         ax.tick_params(
@@ -214,6 +229,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             right=True,
             top=True,
             width=0.65,
+            labelsize=axis_tick_fontsize,
             )
         ax.tick_params(
             axis='x',          
@@ -289,27 +305,69 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         clines = ax.contour(x_data_i, y_data_i, results_data_i,
                    levels=w_ticks,
                     colors='black',
+                    # colors=None,
                    linewidths=w_tick_width)
         
-        ax.clabel(clines, 
+        clabs = ax.clabel(clines, 
                    w_ticks,
                    fmt=fmt_clabel, 
                   fontsize=clabel_fontsize,
                   colors='black',
                   )
         
-        if not comparison_range==[]:
+        if manual_clabels_regular:
+            manual_clabels_regular_keys = list(manual_clabels_regular.keys())
+            
+            for i in clabs:
+                # breakpoint()
+                if i.get_text() in [fmt_clabel(j) for j in manual_clabels_regular_keys]:
+                    i.remove()
+                    
+            #redraw relevant lines
             clines2 = ax.contour(x_data_i, y_data_i, results_data_i,
+                       levels=manual_clabels_regular_keys,
+                        colors='black',
+                       linewidths=w_tick_width)
+            
+            ## draw inline labels over both sets of lines
+            ax.clabel(clines, 
+                        manual_clabels_regular_keys,
+                        fmt=fmt_clabel, 
+                      fontsize=clabel_fontsize,
+                      colors='black',
+                      inline=True,
+                      manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
+                      )
+            ax.clabel(clines2, 
+                       manual_clabels_regular_keys,
+                       fmt=fmt_clabel, 
+                      fontsize=clabel_fontsize,
+                      colors='black',
+                      inline=True,
+                      manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
+                      )
+            
+        if not comparison_range==[]:
+            clines3 = ax.contour(x_data_i, y_data_i, results_data_i,
                        levels=comparison_range,
                         colors='white',
                        linewidths=w_tick_width)
             
-            ax.clabel(clines2, 
-                       comparison_range,
-                       fmt=fmt_clabel, 
-                      fontsize=clabel_fontsize,
-                      colors='black',
-                      )
+            if manual_clabels_comparison_range:
+                ax.clabel(clines3, 
+                           comparison_range,
+                           fmt=fmt_clabel, 
+                          fontsize=clabel_fontsize,
+                          colors='black',
+                          manual=[manual_clabels_comparison_range[i] for i in comparison_range],
+                          )
+            else:
+                ax.clabel(clines3, 
+                           comparison_range,
+                           fmt=fmt_clabel, 
+                          fontsize=clabel_fontsize,
+                          colors='black',
+                          )
         
         ax.set_ylabel(y_label + units_opening_brackets[1] + y_units + "]",  
                       fontsize=axis_title_fonts['size']['y'],
@@ -320,6 +378,40 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         
         ax.set_xticks(x_ticks)
         ax.set_yticks(y_ticks)
+        
+        if not contourplot_facecolor.all()==None:
+            ax.set_facecolor(contourplot_facecolor)
+        
+        if text_boxes:
+            text_boxes_keys = list(text_boxes.keys())
+            for i in text_boxes_keys:
+                (xpos, ypos), textcolor = text_boxes[i]
+                ax.text(xpos, ypos, i, color=textcolor, fontsize=clabel_fontsize)
+        
+        if additional_vlines:
+            ax.vlines(additional_vlines, y_ticks[0], y_ticks[-1], linewidth=1, 
+                      color=additional_vline_colors,
+                      linestyles=additional_vline_linestyles,
+                      linewidths=additional_vline_linewidths)
+        if additional_hlines:
+            ax.hlines(additional_hlines, x_ticks[0], x_ticks[-1], linewidth=1, 
+                      color=additional_hline_colors,
+                      linestyles=additional_hline_linestyles,
+                      linewidths=additional_hline_linewidths)
+        
+        if additional_points:
+            additional_point_keys = additional_points.keys()
+            for apk in additional_point_keys:
+                xp, yp = apk
+                markershape, markercolor, markersize = additional_points[apk]
+                ax.plot(xp, yp, c='k', 
+                        # label='.',
+                        marker=markershape, 
+                            markersize=markersize, 
+                            markerfacecolor=markercolor,
+                              markeredgewidth=0.8,
+                             zorder=100)
+        
         
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.1)
@@ -339,6 +431,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                               loc='center',
                                               **fontname
                                               )
+        
         
         # cbar.ax.set_minor_locator(AutoMinorLocator(cbar_n_minor_ticks+1))
         cbar.ax.minorticks_on()
@@ -363,6 +456,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             direction='inout',
             # right=True,
             width=0.65,
+            labelsize=axis_tick_fontsize,
             )
         cbar.ax.tick_params(
             axis='x',          
@@ -375,6 +469,18 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             which='minor',      
             length=3.5,
             )
+        # plt.rcParams['hatch.linewidth'] = 0.6
+        # plt.rcParams['hatch.color'] = 'white'
+        cbar.ax.fill_betweenx(comparison_range,
+                              # cbar.ax.get_xlim()[0],cbar.ax.get_xlim()[1],
+                              -1, 2,
+                           facecolor='none', 
+                           hatch=comparison_range_hatch_pattern,
+                            # zorder=200,
+                            linewidth=0.6,
+                            edgecolor='white',
+                           # alpha=0.,
+                           )
         
         ax.set_title(' ', fontsize=gap_between_figures)
 
@@ -761,73 +867,6 @@ def stacked_bar_plot(dataframe,
     # plt.tight_layout()
     
     if show_totals:
-        def Round_off(N, n): # function Round_off from https://www.geeksforgeeks.org/round-off-number-given-number-significant-digits/#
-            b = N
-            # c = floor(N)
-            # Counting the no. of digits 
-            # to the left of decimal point 
-            # in the given no.
-            i = 0;
-            while(b >= 1):
-                b = b / 10
-                i = i + 1
-            d = n - i
-            b = N
-            b = b * (10**d)
-            e = b + 0.5
-            if (float(e) == float(ceil(b))):
-                f = (ceil(b))
-                h = f - 2
-                if (h % 2 != 0):
-                    e = e - 1
-            j = floor(e)
-            m = (10**d)
-            j = j / m
-            return j
-        
-        def count_no_of_digits_in_str_num(str_num):
-            return len(str_num) - str_num.count('.')
-        
-        def remove_ending_0(str_num):
-            if str_num[-1]=='0':
-                str_num = str_num[:-1]
-            return str_num
-        
-        def remove_ending_decimal_point(str_num):
-            if str_num[-1]=='.':
-                str_num = str_num[:-1]
-            return str_num
-        
-        def get_exp_str_num(str_exp_num):
-            exp_str_exp_num = ''
-            for i in str_exp_num:
-                exp_str_exp_num+=map_superscript_str_numbers[i]
-            return exp_str_exp_num
-        
-        def convert_OOM_notation_e_to_10_in_str_num(str_num):
-            e_notations = ('e+0', 'e+', 'e-0', 'e-')
-            for e_n in e_notations:
-                if e_n in str_num:
-                    e_n_index_in_string = str_num.index(e_n)
-                    str_exp_num = str_num[e_n_index_in_string+len(e_n):]
-                    exp_str_exp_num = get_exp_str_num(str_exp_num)
-                    ten_n = f' \u00D710{exp_str_exp_num}'
-                    str_num = str_num.replace(e_n+str_exp_num, ten_n)
-                else:
-                    pass
-            return str_num
-        
-        def get_rounded_str(num, sig_figs):
-            rounded_str = remove_ending_decimal_point(remove_ending_0(str(Round_off(num,sig_figs))))
-            n_digits = count_no_of_digits_in_str_num(rounded_str)
-            if n_digits<sig_figs:
-                while not n_digits==sig_figs:
-                  rounded_str+='0'  
-                  n_digits+=1
-            else:
-                rounded_str = convert_OOM_notation_e_to_10_in_str_num(f'{num:.{sig_figs}g}')
-            return rounded_str
-        
         
         num_x_points = len(dataframe.columns)
         distance_between_x_points = 1./num_x_points
@@ -876,4 +915,71 @@ def stacked_bar_plot(dataframe,
     # plt.xlabel(list(df.columns), weight='bold')
 
         
-    
+#%% Miscellaneous
+def Round_off(N, n): # function Round_off from https://www.geeksforgeeks.org/round-off-number-given-number-significant-digits/#
+    b = N
+    # c = floor(N)
+    # Counting the no. of digits 
+    # to the left of decimal point 
+    # in the given no.
+    i = 0;
+    while(b >= 1):
+        b = b / 10
+        i = i + 1
+    d = n - i
+    b = N
+    b = b * (10**d)
+    e = b + 0.5
+    if (float(e) == float(ceil(b))):
+        f = (ceil(b))
+        h = f - 2
+        if (h % 2 != 0):
+            e = e - 1
+    j = floor(e)
+    m = (10**d)
+    j = j / m
+    return j
+
+def count_no_of_digits_in_str_num(str_num):
+    return len(str_num) - str_num.count('.')
+
+def remove_ending_0(str_num):
+    if str_num[-1]=='0':
+        str_num = str_num[:-1]
+    return str_num
+
+def remove_ending_decimal_point(str_num):
+    if str_num[-1]=='.':
+        str_num = str_num[:-1]
+    return str_num
+
+def get_exp_str_num(str_exp_num):
+    exp_str_exp_num = ''
+    for i in str_exp_num:
+        exp_str_exp_num+=map_superscript_str_numbers[i]
+    return exp_str_exp_num
+
+def convert_OOM_notation_e_to_10_in_str_num(str_num):
+    e_notations = ('e+0', 'e+', 'e-0', 'e-')
+    for e_n in e_notations:
+        if e_n in str_num:
+            e_n_index_in_string = str_num.index(e_n)
+            str_exp_num = str_num[e_n_index_in_string+len(e_n):]
+            exp_str_exp_num = get_exp_str_num(str_exp_num)
+            ten_n = f' \u00D710{exp_str_exp_num}'
+            str_num = str_num.replace(e_n+str_exp_num, ten_n)
+        else:
+            pass
+    return str_num
+
+def get_rounded_str(num, sig_figs):
+    # rounded_str = remove_ending_decimal_point(remove_ending_0(str(Round_off(num,sig_figs))))
+    rounded_str = remove_ending_0(str(Round_off(num,sig_figs)))
+    n_digits = count_no_of_digits_in_str_num(rounded_str)
+    if n_digits<sig_figs:
+        while not n_digits==sig_figs:
+          rounded_str+='0'  
+          n_digits+=1
+    else:
+        rounded_str = convert_OOM_notation_e_to_10_in_str_num(f'{num:.{sig_figs}g}')
+    return rounded_str
