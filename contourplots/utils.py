@@ -25,6 +25,8 @@ from matplotlib.container import BarContainer
 import textwrap
 import itertools
 from math import ceil, floor
+from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import zoom
 
 defaults_dict ={'colors':
                 {'Guest_Group_TEA_Breakdown': ['#7BBD84', '#F7C652', '#63C6CE', '#94948C', '#734A8C', '#D1C0E1', '#648496', '#B97A57', '#D1C0E1', '#F8858A', '#F8858A', ]}}
@@ -95,6 +97,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   cmap='viridis',
                                   extend_cmap='neither',
                                   cmap_over_color=None,
+                                  cmap_under_color=None,
                                   cbar_ticks=None,
                                   z_marker_color='b',
                                   z_marker_type='v',
@@ -109,6 +112,10 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   cbar_n_minor_ticks = 4,
                                   comparison_range=[],
                                   comparison_range_hatch_pattern='///',
+                                  
+                                  comparison_lines = [],
+                                  comparison_lines_colors='white',
+                                  
                                   default_fontsize=12.,
                                   units_on_newline = (True, True, False, False), # x,y,z,w
                                   manual_clabels_regular={}, # clabel: (x,y)
@@ -125,9 +132,30 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   additional_hline_linestyles='dashed',
                                   additional_hline_linewidths=0.8,
                                   axis_tick_fontsize=12.,
+                                  gaussian_filter_smoothing=False,
+                                  gaussian_filter_smoothing_sigma=0.7,
+                                  zoom_data_scale = 1., 
+                                  fill_bottom_with_cmap_over_color=False,
+                                  bottom_fill_bounds=None,
                                   ):
+    
+    
     results = np.array(w_data_vs_x_y_at_multiple_z)
     
+    if zoom_data_scale>1:
+        results2 = []
+        for i in range(len(z_data)):
+            results2.append(np.kron(results[i], np.ones((zoom_data_scale*len(x_data), zoom_data_scale*len(y_data)))))
+        results = results2
+        x_data = np.kron(x_data, np.ones(zoom_data_scale*len(x_data)))
+        y_data = np.kron(y_data, np.ones(zoom_data_scale*len(y_data)))
+        # results[np.isnan(results)] = 101010101011101
+        # results = zoom(results, zoom_data_scale)
+        # x_data = zoom(x_data, zoom_data_scale)
+        # y_data = zoom(y_data, zoom_data_scale)
+        # # z_data = zoom(z_data, zoom_data_scale)
+        # results[results == 101010101011101] = np.nan
+        
     if type(cmap)==str:
         cmap = mpl.colormaps[cmap]
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
@@ -166,7 +194,9 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         ax = axs[1]
         if cmap_over_color is not None:
             cmap.set_over(cmap_over_color)
-        
+        if cmap_under_color is not None:
+            cmap.set_under(cmap_under_color)
+            
         results_data = results[z_index]
 
         
@@ -183,7 +213,9 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         y_data_i = np.ma.masked_where(~mask , y_data_i)
         results_data_i = np.ma.masked_where(~mask , results_data_i)
         
-                
+        if gaussian_filter_smoothing:
+            results_data_i = gaussian_filter(results_data_i, gaussian_filter_smoothing_sigma)
+        
         im = ax.contourf(x_data_i, y_data_i, results_data_i,
                           cmap=cmap,
                          levels=w_levels,
@@ -199,14 +231,26 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         
         ax.xaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
         ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+        
+        # Fill bottom with cmap_over_color
+        if fill_bottom_with_cmap_over_color:
+            if not bottom_fill_bounds:
+                y1, y2, y3 = y_ticks[0], y_data[3], y_data[0]
+                x1, x2, x3, x4 = (x_ticks[0], x_data[0], x_data[1], x_ticks[-1])
+                ax.fill_between((x1, x2, x3, x4), (y1, y2, y3, y3), (y1, y1, y1, y1), color=cmap_over_color, zorder=0, lw=0)
+            else:
+                y1, y2, y3 = bottom_fill_bounds[0][1], bottom_fill_bounds[1][1], bottom_fill_bounds[2][1]
+                x1, x2, x3, x4 = bottom_fill_bounds[0][0], bottom_fill_bounds[1][0], bottom_fill_bounds[1][0], bottom_fill_bounds[2][0]
+                ax.fill_between((x1, x2, x3, x4), (y1, y2, y3, y3), (y1, y1, y1, y1), color=cmap_over_color, zorder=0, lw=0)
         # ########--########
         ax.tick_params(
             axis='y',          # changes apply to the y-axis
             which='both',      # both major and minor ticks are affected
             direction='inout',
-            # right=True,
+            right=True,
             width=0.65,
             labelsize=axis_tick_fontsize,
+            # zorder=200,
             )
 
         ax.tick_params(
@@ -230,6 +274,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             top=True,
             width=0.65,
             labelsize=axis_tick_fontsize,
+            # zorder=200,
             )
         ax.tick_params(
             axis='x',          
@@ -288,7 +333,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         
         # ########--########
         
-        if not comparison_range==[]:
+        if not list(comparison_range)==[]:
             [m1,n1] = np.where((results_data_i > comparison_range[0]) & (results_data_i < comparison_range[1]))
             # [m2,n2] = np.where(results_data_i < 7.5)
             
@@ -301,27 +346,28 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             cs = ax.contourf(x_data_i, y_data_i, z1 ,1 , hatches=['', comparison_range_hatch_pattern],  alpha=0.,
                              # extend=extend_cmap,
                              )
-            
-        clines = ax.contour(x_data_i, y_data_i, results_data_i,
-                   levels=w_ticks,
-                    colors='black',
-                    # colors=None,
-                   linewidths=w_tick_width)
         
-        clabs = ax.clabel(clines, 
-                   w_ticks,
-                   fmt=fmt_clabel, 
-                  fontsize=clabel_fontsize,
-                  colors='black',
-                  )
+            
+        # clines = ax.contour(x_data_i, y_data_i, results_data_i,
+        #            levels=w_ticks,
+        #             colors='black',
+        #             # colors=None,
+        #            linewidths=w_tick_width)
+        
+        # clabs = ax.clabel(clines, 
+        #            w_ticks,
+        #            fmt=fmt_clabel, 
+        #           fontsize=clabel_fontsize,
+        #           colors='black',
+        #           )
         
         if manual_clabels_regular:
             manual_clabels_regular_keys = list(manual_clabels_regular.keys())
             
-            for i in clabs:
-                # breakpoint()
-                if i.get_text() in [fmt_clabel(j) for j in manual_clabels_regular_keys]:
-                    i.remove()
+            # for i in clabs:
+            #     # breakpoint()
+            #     if i.get_text() in [fmt_clabel(j) for j in manual_clabels_regular_keys]:
+            #         i.remove()
                     
             #redraw relevant lines
             clines2 = ax.contour(x_data_i, y_data_i, results_data_i,
@@ -330,14 +376,14 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                        linewidths=w_tick_width)
             
             ## draw inline labels over both sets of lines
-            ax.clabel(clines, 
-                        manual_clabels_regular_keys,
-                        fmt=fmt_clabel, 
-                      fontsize=clabel_fontsize,
-                      colors='black',
-                      inline=True,
-                      manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
-                      )
+            # ax.clabel(clines, 
+            #             manual_clabels_regular_keys,
+            #             fmt=fmt_clabel, 
+            #           fontsize=clabel_fontsize,
+            #           colors='black',
+            #           inline=True,
+            #           manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
+            #           )
             ax.clabel(clines2, 
                        manual_clabels_regular_keys,
                        fmt=fmt_clabel, 
@@ -347,11 +393,44 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
                       )
             
-        if not comparison_range==[]:
+            nonmanual_ticks_levels = [i for i in w_ticks if not i in manual_clabels_regular_keys]
+            
+            # breakpoint()
+            if not len(w_ticks) == len(manual_clabels_regular_keys):
+                clines = ax.contour(x_data_i, y_data_i, results_data_i,
+                           levels=nonmanual_ticks_levels,
+                            colors='black',
+                            # colors=None,
+                           linewidths=w_tick_width)
+                
+                # clabs = ax.clabel(clines, 
+                #            nonmanual_ticks_levels,
+                #            fmt=fmt_clabel, 
+                #           fontsize=clabel_fontsize,
+                #           colors='black',
+                #           )
+        
+        else:
+            clines = ax.contour(x_data_i, y_data_i, results_data_i,
+                       levels=w_ticks,
+                        colors='black',
+                        # colors=None,
+                       linewidths=w_tick_width)
+            
+            clabs = ax.clabel(clines, 
+                       w_ticks,
+                       fmt=fmt_clabel, 
+                      fontsize=clabel_fontsize,
+                      colors='black',
+                      )
+        
+        if not list(comparison_range)==[]:
             clines3 = ax.contour(x_data_i, y_data_i, results_data_i,
                        levels=comparison_range,
                         colors='white',
-                       linewidths=w_tick_width)
+                       linewidths=w_tick_width,
+                       # zorder=199,
+                       )
             
             if manual_clabels_comparison_range:
                 ax.clabel(clines3, 
@@ -412,11 +491,23 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                               markeredgewidth=0.8,
                              zorder=100)
         
-        
+        if not list(comparison_lines)==[]:
+            
+            cs = ax.contour(x_data_i, y_data_i, results_data_i,
+                       levels=comparison_lines,
+                        colors=comparison_lines_colors,
+                       linewidths=w_tick_width)
+            ax.clabel(cs, 
+                       comparison_lines,
+                       fmt=fmt_clabel, 
+                      fontsize=clabel_fontsize,
+                      colors=comparison_lines_colors,
+                      )
+                      
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.1)
         
-        norm = mpl.colors.BoundaryNorm(w_levels, cmap.N, extend='max')
+        norm = mpl.colors.BoundaryNorm(w_levels, cmap.N, extend=extend_cmap)
         
         # if not cbar_ticks:
         #     cbar_ticks = w_levels
@@ -650,7 +741,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
     ax.set_ylim(min(y_ticks), max(y_ticks))
     ax2.set_ylim(min(y_ticks), max(y_ticks))
     
-    if not y_ticks==[]:
+    if not list(y_ticks)==[]:
         ax.set_yticks(y_ticks)
         ax2.set_yticks(y_ticks)
         l = ax.get_ylim()
@@ -704,7 +795,7 @@ def stacked_bar_plot(dataframe,
                        y_ticks=[], x_ticks=[], 
                        ylim=[],
                        colors=None, 
-                       hatch_patterns=('\\', '//', 'x',  '|',),
+                       hatch_patterns=('\\', '//', '|', 'x',),
                        colormap=None,
                        metric_total_values=[], metric_units=[],
                        n_minor_ticks=1,
@@ -907,6 +998,7 @@ def stacked_bar_plot(dataframe,
                 facecolor=fig.get_facecolor(),
                 transparent=False)
     
+    plt.show()
     # patterns = [ "/" , "\\" , "|" , "-" , "+" , "x", "o", "O", ".", "*" ]
     # bars = ax.bar([0,5], [0,5])
     # for bar, pattern in zip(bars, patterns):
