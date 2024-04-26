@@ -137,6 +137,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   zoom_data_scale = 1., 
                                   fill_bottom_with_cmap_over_color=False,
                                   bottom_fill_bounds=None,
+                                  add_shapes = {},
                                   ):
     
     
@@ -491,6 +492,11 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                               markeredgewidth=0.8,
                              zorder=100)
         
+        if not add_shapes=={}:
+            for coords, (shapecolor, shapezorder) in  add_shapes.items():
+                t1 = plt.Polygon(coords, color=shapecolor, zorder=shapezorder)
+                ax.add_patch(t1,)
+                
         if not list(comparison_lines)==[]:
             
             cs = ax.contour(x_data_i, y_data_i, results_data_i,
