@@ -6,7 +6,7 @@
 # https://github.com/sarangbhagwat/contourplots/blob/main/LICENSE
 # for license details.
 
-__version__ = '0.2.1'
+__version__ = '0.3.0'
 __author__ = 'Sarang S. Bhagwat'
 
 # %% Initialize ContourPlots 
