@@ -490,7 +490,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                             markersize=markersize, 
                             markerfacecolor=markercolor,
                               markeredgewidth=0.8,
-                             zorder=100)
+                             zorder=500)
         
         if not add_shapes=={}:
             for coords, (shapecolor, shapezorder) in  add_shapes.items():
@@ -616,6 +616,547 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             os.remove(f'./{animated_contourplot_filename}_frame_{z_index}.png')
 
 
+#%% Animated barplot
+
+def animated_barplot(y_data, # shape = z * x
+                                  x_data,
+                                  z_data,
+                                  x_label="x", # title of the x axis
+                                  z_label="z", # title of the z axis
+                                  y_label="w", # title of the color axis
+                                  x_ticks=[],
+                                  z_ticks=[],
+                                  y_ticks=[], # labeled, lined contours (a subset of w_levels)
+                                  x_units="",
+                                  z_units="",
+                                  y_units="",
+                                  gridspec_kw={'height_ratios': [1, 20]},
+                                  fontname={'fontname':'Arial Unicode'},
+                                  figwidth=3.9,
+                                  bar_width = 0.5,
+                                  dpi=600,
+                                  z_marker_color='b',
+                                  z_marker_type='v',
+                                  axis_title_fonts={'size': {'x': 12, 'y':12, 'z':12},},
+                                  gap_between_figures=20., 
+                                  fps=5, # animation frames (z values traversed) per second
+                                  n_loops='inf', # the number of times the animated contourplot should loop animation over z; infinite by default
+                                  animated_barplot_filename='animated_barplot',
+                                  keep_frames=False, # leaves frame PNG files undeleted after running; False by default
+                                  n_minor_ticks = 1,
+                                  cbar_n_minor_ticks = 4,
+                                  
+                                  colors='blue',
+                                  edgecolors='black',
+                                  linewidths=0.65,
+                                  
+                                  default_fontsize=12.,
+                                  units_on_newline = (True, False, False), # x,y,z,w
+                                  contourplot_facecolor=np.array([None, None, None]),
+                                  text_boxes = {}, # str: (x,y)
+                                  additional_points = {}, # (x,y): (markershape, markercolor, markersize)
+                                  additional_vlines = [],
+                                  additional_vline_colors='black',
+                                  additional_vline_linestyles='dashed',
+                                  additional_vline_linewidths=0.8,
+                                  additional_hlines = [],
+                                  additional_hline_colors='black',
+                                  additional_hline_linestyles='dashed',
+                                  additional_hline_linewidths=0.8,
+                                  axis_tick_fontsize=12.,
+                                  gaussian_filter_smoothing=False,
+                                  gaussian_filter_smoothing_sigma=0.7,
+                                  ):
+    
+    
+    results = np.array(y_data)
+    
+
+    plt.rcParams['font.sans-serif'] = "Arial Unicode"
+    plt.rcParams['font.size'] = str(default_fontsize)
+    def create_frame(z_index):
+        fig, axs = plt.subplots(2, 1, constrained_layout=True, 
+                                gridspec_kw=gridspec_kw)
+        fig.set_figwidth(figwidth)
+        ax = axs[0]
+        a = [z_data[z_index]]
+        ax.hlines(1,1,1)
+        
+        if list(z_ticks): 
+            ax.set_xlim(min(z_ticks), max(z_ticks))
+        else:
+            ax.set_xlim(z_data.min(), z_data.max())
+            
+        ax.set_ylim(0.5,1.5)
+        
+        
+        
+        ax.xaxis.tick_top()
+        units_opening_brackets = [" [", " [", " [", " ["]
+        for i in range(len(units_opening_brackets)):
+            if units_on_newline:
+                units_opening_brackets[i] = "\n["
+                
+        ax.set_xlabel(z_label + units_opening_brackets[2] + z_units + "]",  
+                      fontsize=axis_title_fonts['size']['z'],
+                      **fontname)
+        ax.set_xticks(z_ticks,
+                      **fontname)
+    
+        y = np.ones(np.shape(a))
+        ax.plot(a,y,
+                color=z_marker_color, 
+                marker=z_marker_type,
+                ms = 7,)
+        ax.axes.get_yaxis().set_visible(False)
+        ax.tick_params(labelsize=axis_tick_fontsize)
+        ax = axs[1]
+
+        if list(y_ticks): 
+            ax.set_ylim(min(y_ticks), max(y_ticks))
+        else:
+            ax.set_ylim(y_data.min(), y_data.max())
+    
+        # results_data = results[z_index]
+
+        ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+        
+        ax.tick_params(
+            axis='y',          # changes apply to the y-axis
+            which='both',      # both major and minor ticks are affected
+            direction='inout',
+            right=True,
+            width=0.65,
+            labelsize=axis_tick_fontsize,
+            # zorder=200,
+            )
+
+        ax.tick_params(
+            axis='y',          
+            which='major',      
+            length=7,
+            )
+
+        ax.tick_params(
+            axis='y',          
+            which='minor',      
+            length=3.5,
+            )
+        
+        
+        ax.tick_params(
+            axis='x',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            direction='inout',
+            right=True,
+            top=True,
+            width=0.65,
+            labelsize=axis_tick_fontsize,
+            # zorder=200,
+            )
+        ax.tick_params(
+            axis='x',          
+            which='major',      
+            length=7,
+            # right=True,
+            # top=True,
+            )
+
+        ax.tick_params(
+            axis='x',          
+            which='minor',      
+            length=3.5,
+            # right=True,
+            # top=True,
+            )
+        
+       
+        ax.bar([i for i in range(len(x_data))], 
+                   y_data[z_index],
+                   width=bar_width,
+                   color=colors,
+                   edgecolor=edgecolors,
+                   linewidth=linewidths,
+                   )
+        
+        
+        ax.set_xticks(x_ticks,
+                      **fontname)
+        ax.set_yticks(y_ticks,
+                      **fontname)
+        
+        ax.set_title(' ', fontsize=gap_between_figures)
+        
+        ax.set_ylabel(y_label + " [" + y_units + "]", 
+                      fontname, fontsize=axis_title_fonts['size']['y'], 
+                   # fontweight='bold',
+                   )
+        
+        plt.savefig(f'./{animated_barplot_filename}_frame_{z_index}.png', 
+                    transparent = False,  
+                    facecolor = 'white',
+                    bbox_inches='tight',
+                    dpi=dpi,
+                    )                                
+        plt.close()
+        
+        
+    for z_index in range(len(z_data)):
+        create_frame(z_index)
+          
+    frames = []
+    for z_index in range(len(z_data)):
+        image = imageio.v2.imread(f'./{animated_barplot_filename}_frame_{z_index}.png')
+        frames.append(image)
+    
+    
+    if n_loops==('inf' or 'infinite' or 'infinity' or np.inf):
+        imageio.mimsave('./' + animated_barplot_filename + '.gif',
+                        frames,
+                        fps=fps,
+                        ) 
+    else:
+        imageio.mimsave('./' + animated_barplot_filename + '.gif',
+                        frames,
+                        fps=fps,
+                        loop=n_loops,
+                        ) 
+    
+    if not keep_frames:
+        for z_index in range(len(z_data)):
+            os.remove(f'./{animated_barplot_filename}_frame_{z_index}.png')
+
+#%% Animated stacked barplot
+
+def animated_stacked_barplot(   dataframes_over_z, 
+                               z_data,
+                               y_ticks=[], x_ticks=[], 
+                               ylim=[],
+                               z_label="z", # title of the z axis
+                               z_ticks=[],
+                               z_units="",
+                               hatch_patterns=('\\', '//', '|', 'x',),
+                               colormap=None,
+                               metric_total_values=[], metric_units=[],
+                               y_label='', y_units='',
+                               linewidth=0.8,
+                               filename='stacked_bar_plot',
+                               dpi=600,
+                               # fig_width=7,
+                               figheight=5.5*1.1777,
+                               show_totals=False,
+                               totals=[],
+                               sig_figs_for_totals=3,
+                               units_list=[],
+                               totals_label_text=r"$\bfsum:$",
+           
+                                  gridspec_kw={'height_ratios': [1, 20]},
+                                  fontname={'fontname':'Arial Unicode'},
+                                  figwidth=3.9,
+                                  bar_width = 0.5,
+                                  z_marker_color='b',
+                                  z_marker_type='v',
+                                  axis_title_fonts={'size': {'x': 12, 'y':12, 'z':12},},
+                                  gap_between_figures=20., 
+                                  fps=5, # animation frames (z values traversed) per second
+                                  n_loops='inf', # the number of times the animated contourplot should loop animation over z; infinite by default
+                                  animated_barplot_filename='animated_barplot',
+                                  keep_frames=False, # leaves frame PNG files undeleted after running; False by default
+                                  n_minor_ticks = 1,
+                                  cbar_n_minor_ticks = 4,
+                                  
+                                  colors='blue',
+                                  edgecolors='black',
+                                  linewidths=0.65,
+                                  
+                                  default_fontsize=12.,
+                                  units_on_newline = (True, False, False), # x,y,z,w
+                                  contourplot_facecolor=np.array([None, None, None]),
+                                  text_boxes = {}, # str: (x,y)
+                                  additional_points = {}, # (x,y): (markershape, markercolor, markersize)
+                                  additional_vlines = [],
+                                  additional_vline_colors='black',
+                                  additional_vline_linestyles='dashed',
+                                  additional_vline_linewidths=0.8,
+                                  additional_hlines = [],
+                                  additional_hline_colors='black',
+                                  additional_hline_linestyles='dashed',
+                                  additional_hline_linewidths=0.8,
+                                  axis_tick_fontsize=12.,
+                                  ):
+    
+    
+
+    plt.rcParams['font.sans-serif'] = "Arial Unicode"
+    plt.rcParams['font.size'] = str(default_fontsize)
+    def create_frame(z_index):
+        fig, axs = plt.subplots(2, 1, constrained_layout=True, 
+                                gridspec_kw=gridspec_kw)
+        fig.set_figwidth(figwidth)
+        fig.set_figheight(figheight)
+        ax = axs[0]
+        a = [z_data[z_index]]
+        ax.hlines(1,1,1)
+        
+        if list(z_ticks): 
+            ax.set_xlim(min(z_ticks), max(z_ticks))
+        else:
+            ax.set_xlim(z_data.min(), z_data.max())
+            
+        ax.set_ylim(0.5,1.5)
+        
+        
+        
+        ax.xaxis.tick_top()
+        units_opening_brackets = [" [", " [", " [", " ["]
+        for i in range(len(units_opening_brackets)):
+            if units_on_newline:
+                units_opening_brackets[i] = "\n["
+                
+        ax.set_xlabel(z_label + units_opening_brackets[2] + z_units + "]",  
+                      fontsize=axis_title_fonts['size']['z'],
+                      **fontname)
+        ax.set_xticks(z_ticks,
+                      **fontname)
+    
+        y = np.ones(np.shape(a))
+        ax.plot(a,y,
+                color=z_marker_color, 
+                marker=z_marker_type,
+                ms = 7,)
+        ax.axes.get_yaxis().set_visible(False)
+        ax.tick_params(labelsize=axis_tick_fontsize)
+        ax = axs[1]
+        
+        # Stacked bar plot
+        dataframe = dataframes_over_z[z_index]
+        # dataframe = dataframe_over_z.loc[dataframe_over_z['Time'] == z_data[z_index]]
+        
+        ax = dataframe.T.plot(kind='bar', stacked=True, edgecolor='k', linewidth=linewidth,
+                              color=colors,
+                              colormap=colormap,
+                              # facecolor="white",
+                               # use_index=False,
+                              rot=0,
+                              )
+        
+        
+        ax.set_facecolor("white")
+        
+        fig = plt.gcf()
+        
+        
+        
+        ax.set_yticks(y_ticks,)
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: f'{val}'))
+        ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+        
+        
+        ax.containers[:4]
+        # print(ax.containers)
+        bars = [thing for thing in ax.containers if isinstance(thing, BarContainer)]
+        
+        
+        used_facecolors = []
+        used_hatches_dict = {}
+        # print(len(bars))
+        bar_hatch_dict = {}
+        bar_num = 0
+        patterns = itertools.cycle(hatch_patterns)
+        for bar in bars:
+            # print(len(bar))
+            for patch in bar:
+                
+                if not bar_num in bar_hatch_dict.keys():
+                    curr_facecolor = patch.get_facecolor()
+                    
+                    if not curr_facecolor in used_hatches_dict.keys():
+                        used_hatches_dict[curr_facecolor] = []
+                        
+                    if curr_facecolor in used_facecolors:
+                        used_hatches = used_hatches_dict[curr_facecolor]
+                        curr_hatch = next(patterns)
+                        i=100
+                        while curr_hatch in used_hatches:
+                            i+=1
+                            # print(True)
+                            curr_hatch = next(patterns)
+                            if i>100:
+                                break
+                        patch.set_hatch(curr_hatch)
+                        bar_hatch_dict[bar_num] = curr_hatch
+                        used_hatches.append(curr_hatch)
+                    else:
+                        bar_hatch_dict[bar_num] = None
+                    used_facecolors.append(curr_facecolor)
+                else:
+                    if bar_hatch_dict[bar_num] is not None:
+                        if curr_facecolor in used_facecolors:
+                            patch.set_hatch(bar_hatch_dict[bar_num])
+            bar_num+=1
+        # print(bar_hatch_dict)
+        ax.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left', edgecolor='white')
+
+        ax.set_ylabel(y_label + " [" + y_units + "]", fontsize=14)
+        
+        # ax.set_xlabel(x_labels, fontsize=14)
+        
+        wrap_labels(ax,10)
+        
+        ax.axhline(y=0,  color='k', linestyle='-', linewidth=linewidth)
+        
+        ax.tick_params(
+            axis='y',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            direction='inout',
+            # right=True,
+            width=1,
+            )
+
+        ax.tick_params(
+            axis='y',          
+            which='major',      
+            length=5,
+            )
+
+        ax.tick_params(
+            axis='y',          
+            which='minor',      
+            length=3,
+            )
+        
+        
+        ax.tick_params(
+            axis='x',          # changes apply to the x-axis
+            which='both',      # both major and minor ticks are affected
+            direction='inout',
+            # right=True,
+            width=1,
+            )
+        
+        
+        ax2 = ax.twinx()
+        
+        
+        if not list(y_ticks)==[]:
+            ax.set_yticks(y_ticks)
+            ax2.set_yticks(y_ticks)
+            l = ax.get_ylim()
+            l2 = ax2.get_ylim()
+            f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
+            ticks = f(ax.get_yticks())
+            ax2.yaxis.set_major_locator(FixedLocator(ticks))
+            ax2.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+        
+        else:
+            ax2.set_yticks(ax.get_y_ticks())
+            l = ax.get_ylim()
+            l2 = ax2.get_ylim()
+            f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
+            ticks = f(ax.get_yticks())
+            ax2.yaxis.set_major_locator(FixedLocator(ticks))
+            ax2.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
+            
+        ax2.tick_params(
+            axis='y',          
+            which='both',      
+            direction='in',
+            # right=True,
+            labelright=False,
+            width=1,
+            )
+        
+        if ylim: 
+            ax.set_ylim(ylim)
+        else:
+            ax.set_ylim([min(y_ticks), max(y_ticks)])
+        # plt.tight_layout()
+        
+        if show_totals:
+            
+            num_x_points = len(dataframe.columns)
+            distance_between_x_points = 1./num_x_points
+            start_x_coord = distance_between_x_points/2.
+            
+            ax.annotate(
+                    xy=(start_x_coord-0.75*distance_between_x_points, 
+                    1.1), 
+                    text=totals_label_text, 
+                    # fontsize=14, 
+                    ha='center', va='center',
+                    xycoords='axes fraction',
+                     # transform=plt.gcf().transFigure,
+                     )
+            
+            
+            for i in range(num_x_points):
+                ax.annotate(
+                        xy=(start_x_coord+i*distance_between_x_points, 
+                        1.1), 
+                        text=get_rounded_str(totals[i], sig_figs_for_totals), 
+                        # fontsize=14, 
+                        ha='center', va='center',
+                        xycoords='axes fraction',
+                         # transform=plt.gcf().transFigure,
+                         )
+                ax.annotate(
+                        xy=(start_x_coord+i*distance_between_x_points, 
+                        1.05), 
+                        text=units_list[i], 
+                        # fontsize=14, 
+                        ha='center', va='center',
+                        xycoords='axes fraction',
+                         # transform=plt.gcf().transFigure,
+                         )
+                
+        # plt.savefig(filename+'.png', dpi=dpi, bbox_inches='tight',
+        #             facecolor=fig.get_facecolor(),
+        #             transparent=False)
+        
+        # plt.show()
+        
+        ax.set_title(' ', fontsize=gap_between_figures)
+        
+        ax.set_ylabel(y_label + " [" + y_units + "]", 
+                      fontname, fontsize=axis_title_fonts['size']['y'], 
+                   # fontweight='bold',
+                   )
+        
+        plt.savefig(f'./{animated_barplot_filename}_frame_{z_index}.png', 
+                    transparent = False,  
+                    facecolor = 'white',
+                    bbox_inches='tight',
+                    dpi=dpi,
+                    )                                
+        plt.close()
+        
+        
+    for z_index in range(len(z_data)):
+        create_frame(z_index)
+          
+    frames = []
+    for z_index in range(len(z_data)):
+        image = imageio.v2.imread(f'./{animated_barplot_filename}_frame_{z_index}.png')
+        frames.append(image)
+    
+    
+    if n_loops==('inf' or 'infinite' or 'infinity' or np.inf):
+        imageio.mimsave('./' + animated_barplot_filename + '.gif',
+                        frames,
+                        fps=fps,
+                        ) 
+    else:
+        imageio.mimsave('./' + animated_barplot_filename + '.gif',
+                        frames,
+                        fps=fps,
+                        loop=n_loops,
+                        ) 
+    
+    if not keep_frames:
+        for z_index in range(len(z_data)):
+            os.remove(f'./{animated_barplot_filename}_frame_{z_index}.png')
+            
+            
 #%%
 def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty data (for a single boxplot) or a nested list of iterables of uncertainty data (for multiple plots))
                           baseline_values=None, 

@@ -14,12 +14,16 @@ __author__ = 'Sarang S. Bhagwat'
 from . import utils
 
 animated_contourplot = utils.animated_contourplot
+animated_barplot = utils.animated_barplot
 box_and_whiskers_plot = utils.box_and_whiskers_plot
 stacked_bar_plot = utils.stacked_bar_plot
+animated_stacked_barplot = utils.animated_stacked_barplot
 
 __all__ = (
     'utils', 
     'animated_contourplot', 
+    'animated_barplot',
+    'animated_stacked_barplot',
     'box_and_whiskers_plot', 
     'stacked_bar_plot',
 )
