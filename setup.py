@@ -10,7 +10,7 @@ from setuptools import setup
 setup(
     name='contourplots',
     packages=['contourplots'],
-    version='0.3.0',    
+    version='0.3.1',    
     description='A toolkit for generating multi-dimensional plots easily, usefully, and legibly.',
     url='https://github.com/sarangbhagwat/contourplots',
     author='Sarang S. Bhagwat',

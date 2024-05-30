@@ -1183,11 +1183,16 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
                           fig_height=5.5,
                           box_width=1.5,
                           height_ratios = [1, 20],
-                          
+                          xlabelpad=5,
+                          ylabelpad=5,
+                          xticks_fontsize = 17,
+                          ylabel_fontsize = 19,
+                          yticks_fontsize = 17,
+                          default_fontsize = 15,
                           ):
     n_boxes = 1. if not hasattr(uncertainty_data[0], '__iter__') else len(uncertainty_data)
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
-    plt.rcParams['font.size'] = "14"
+    plt.rcParams['font.size'] = str(default_fontsize)
 
     gridspec_kw={'height_ratios': height_ratios,},
 
@@ -1236,7 +1241,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
             ax.fill_between(list(range(0, n_boxes+2)), [range_for_comparison[0]], [range_for_comparison[1]], color=range_for_comparison_color, alpha=1., zorder=1)
 
     if not (values_for_comparison==() or values_for_comparison==[] or values_for_comparison==None):
-        1
+        1 # not implemented
     
     ax.yaxis.set_minor_locator(AutoMinorLocator(n_minor_ticks+1))
     
@@ -1259,7 +1264,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
             labelbottom=False if x_tick_labels is None else True)
     
     if show_x_ticks and (x_tick_labels is not None):
-        ax.set_xticks(ticks=list(range(1,n_boxes+1)), labels=x_tick_labels,)
+        ax.set_xticks(ticks=list(range(1,n_boxes+1)), labels=x_tick_labels, fontsize=xticks_fontsize)
         wrap_labels(ax, width=x_tick_wrap_width, fontsize=x_tick_fontsize)
     
 
@@ -1269,6 +1274,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
         direction='inout',
         # right=True,
         width=1,
+        labelsize=yticks_fontsize,
         )
 
     ax.tick_params(
@@ -1324,12 +1330,16 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
         # right=True,
         labelright=False,
         width=1,
+        labelsize=yticks_fontsize,
         )
     
     ax.set_ylabel(y_label + " [" + y_units + "]", 
-                  {'fontname':'Arial Unicode'}, fontsize=14, 
+                  {'fontname':'Arial Unicode'}, fontsize=ylabel_fontsize, 
+                  labelpad=ylabelpad,
                # fontweight='bold',
                )
+    ax.xaxis.labelpad = xlabelpad
+    ax.tick_params(axis='x', which='major', pad=xlabelpad)
     
     # ax.set_ylim(min(y_ticks), max(y_ticks))
 
@@ -1357,6 +1367,8 @@ def stacked_bar_plot(dataframe,
                        sig_figs_for_totals=3,
                        units_list=[],
                        totals_label_text=r"$\bfsum:$",
+                       xlabelpad=5,
+                       ylabelpad=5,
                        ):
     
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
@@ -1429,7 +1441,9 @@ def stacked_bar_plot(dataframe,
     # print(bar_hatch_dict)
     ax.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left', edgecolor='white')
 
-    ax.set_ylabel(y_label + " [" + y_units + "]", fontsize=14)
+    ax.set_ylabel(y_label + " [" + y_units + "]", fontsize=14, labelpad=ylabelpad)
+    
+    ax.xaxis.labelpad=xlabelpad
     
     # ax.set_xlabel(x_labels, fontsize=14)
     
