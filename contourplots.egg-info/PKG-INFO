@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: contourplots
-Version: 0.3.1
+Version: 0.3.2
 Summary: A toolkit for generating multi-dimensional plots easily, usefully, and legibly.
 Home-page: https://github.com/sarangbhagwat/contourplots
 Author: Sarang S. Bhagwat
@@ -12,6 +12,3 @@ Classifier: License :: OSI Approved :: University of Illinois/NCSA Open Source L
 Classifier: Operating System :: Microsoft :: Windows
 Classifier: Programming Language :: Python :: 3.9
 License-File: LICENSE.txt
-Requires-Dist: matplotlib==3.5.2
-Requires-Dist: numpy>=1.23.4
-Requires-Dist: imageio>=2.19.3

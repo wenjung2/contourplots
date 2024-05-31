@@ -1173,7 +1173,6 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
                           y_ticks=[],
                           show_x_ticks=False,
                           x_tick_labels=None,
-                          x_tick_fontsize=14,
                           x_tick_wrap_width=6,
                           boxcolor="#A97802",
                           save_file=True,
@@ -1182,24 +1181,36 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
                           fig_width=1.5,
                           fig_height=5.5,
                           box_width=1.5,
-                          height_ratios = [1, 20],
+                          height_ratios = [1],
+                          width_ratios = [1,5],
                           xlabelpad=5,
                           ylabelpad=5,
                           xticks_fontsize = 17,
                           ylabel_fontsize = 19,
                           yticks_fontsize = 17,
                           default_fontsize = 15,
+                          show=False,
+                          n_cols_subplots=1,
                           ):
     n_boxes = 1. if not hasattr(uncertainty_data[0], '__iter__') else len(uncertainty_data)
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
     plt.rcParams['font.size'] = str(default_fontsize)
 
-    gridspec_kw={'height_ratios': height_ratios,},
-
-    fig, axs = plt.subplots(1, 1, constrained_layout=True, 
-                            # gridspec_kw=gridspec_kw,
-                            )
-    ax = axs
+    gridspec_kw={
+                'height_ratios': height_ratios,
+                 'width_ratios': width_ratios,
+                 }
+    
+    fig, axs = plt.subplots(1,n_cols_subplots, gridspec_kw=gridspec_kw, constrained_layout = True) if n_cols_subplots>1\
+        else plt.subplots(1,1,constrained_layout = True)
+    
+    ax = axs[0] if n_cols_subplots>1 else axs
+    # ax = plt.subplot(1, 2, 1,
+    #                         # constrained_layout=True, 
+    #                         # gridspec_kw=gridspec_kw,
+    #                         )
+    
+    fig = plt.gcf()
     
     if n_boxes > 1.:
         xrange = [i+0.5 for i in range(n_boxes+1)]
@@ -1265,7 +1276,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
     
     if show_x_ticks and (x_tick_labels is not None):
         ax.set_xticks(ticks=list(range(1,n_boxes+1)), labels=x_tick_labels, fontsize=xticks_fontsize)
-        wrap_labels(ax, width=x_tick_wrap_width, fontsize=x_tick_fontsize)
+        wrap_labels(ax, width=x_tick_wrap_width, fontsize=xticks_fontsize)
     
 
     ax.tick_params(
@@ -1346,11 +1357,16 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
 
 
     plt.savefig(filename+'.png', dpi=dpi)
+    
+    if show: plt.show()
+    
+    return fig, axs
 
 #%%
 def stacked_bar_plot(dataframe, 
                        y_ticks=[], x_ticks=[], 
                        ylim=[],
+                       ax=None,
                        colors=None, 
                        hatch_patterns=('\\', '//', '|', 'x',),
                        colormap=None,
@@ -1369,17 +1385,32 @@ def stacked_bar_plot(dataframe,
                        totals_label_text=r"$\bfsum:$",
                        xlabelpad=5,
                        ylabelpad=5,
+                       xticks_fontsize = 17,
+                       ylabel_fontsize = 19,
+                       yticks_fontsize = 17,
+                       default_fontsize = 17,
+                       label_wrapsize = 8,
+                       show=False,
+                       subplot_padding = 5,
+                       bar_width=0.6,
                        ):
+    # axs = plt.subplot(1, 2, 2,
+    #                         # gridspec_kw=gridspec_kw,
+    #                         )
+    
+    fig = plt.gcf()
     
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
-    plt.rcParams['font.size'] = "14"
+    plt.rcParams['font.size'] = str(default_fontsize)
     
-    ax = dataframe.T.plot(kind='bar', stacked=True, edgecolor='k', linewidth=linewidth,
+    dataframe.T.plot(kind='bar', stacked=True, edgecolor='k', linewidth=linewidth,
                           color=colors,
                           colormap=colormap,
                           # facecolor="white",
                            # use_index=False,
+                           ax=ax,
                           rot=0,
+                           width=bar_width,
                           )
     
     
@@ -1389,6 +1420,7 @@ def stacked_bar_plot(dataframe,
     
     fig.set_figwidth(fig_width)
     fig.set_figheight(fig_height)
+    # fig.tight_layout(pad=subplot_padding)
     
     
     ax.set_yticks(y_ticks,)
@@ -1441,13 +1473,13 @@ def stacked_bar_plot(dataframe,
     # print(bar_hatch_dict)
     ax.legend(bbox_to_anchor=(1.05, 1.0), loc='upper left', edgecolor='white')
 
-    ax.set_ylabel(y_label + " [" + y_units + "]", fontsize=14, labelpad=ylabelpad)
+    ax.set_ylabel(y_label + " [" + y_units + "]", fontsize=ylabel_fontsize, labelpad=ylabelpad)
     
     ax.xaxis.labelpad=xlabelpad
     
     # ax.set_xlabel(x_labels, fontsize=14)
     
-    wrap_labels(ax,10)
+    wrap_labels(ax,label_wrapsize)
     
     ax.axhline(y=0,  color='k', linestyle='-', linewidth=linewidth)
     
@@ -1457,6 +1489,7 @@ def stacked_bar_plot(dataframe,
         direction='inout',
         # right=True,
         width=1,
+        labelsize=yticks_fontsize,
         )
 
     ax.tick_params(
@@ -1478,6 +1511,7 @@ def stacked_bar_plot(dataframe,
         direction='inout',
         # right=True,
         width=1,
+        labelsize=xticks_fontsize,
         )
     
     
@@ -1559,7 +1593,9 @@ def stacked_bar_plot(dataframe,
                 facecolor=fig.get_facecolor(),
                 transparent=False)
     
-    plt.show()
+    if show: plt.show()
+    
+    return fig, ax, ax2
     # patterns = [ "/" , "\\" , "|" , "-" , "+" , "x", "o", "O", ".", "*" ]
     # bars = ax.bar([0,5], [0,5])
     # for bar, pattern in zip(bars, patterns):

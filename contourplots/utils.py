@@ -1191,6 +1191,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
                           default_fontsize = 15,
                           show=False,
                           n_cols_subplots=1,
+                          xticks_fontcolor='black',
                           ):
     n_boxes = 1. if not hasattr(uncertainty_data[0], '__iter__') else len(uncertainty_data)
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
@@ -1275,7 +1276,10 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
             labelbottom=False if x_tick_labels is None else True)
     
     if show_x_ticks and (x_tick_labels is not None):
-        ax.set_xticks(ticks=list(range(1,n_boxes+1)), labels=x_tick_labels, fontsize=xticks_fontsize)
+        ax.set_xticks(ticks=list(range(1,n_boxes+1)), 
+                      labels=x_tick_labels, 
+                      fontsize=xticks_fontsize,
+                      color=xticks_fontcolor)
         wrap_labels(ax, width=x_tick_wrap_width, fontsize=xticks_fontsize)
     
 
@@ -1393,6 +1397,7 @@ def stacked_bar_plot(dataframe,
                        show=False,
                        subplot_padding = 5,
                        bar_width=0.6,
+                       xticks_fontcolor='black',
                        ):
     # axs = plt.subplot(1, 2, 2,
     #                         # gridspec_kw=gridspec_kw,
@@ -1403,7 +1408,7 @@ def stacked_bar_plot(dataframe,
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
     plt.rcParams['font.size'] = str(default_fontsize)
     
-    dataframe.T.plot(kind='bar', stacked=True, edgecolor='k', linewidth=linewidth,
+    ax1 = dataframe.T.plot(kind='bar', stacked=True, edgecolor='k', linewidth=linewidth,
                           color=colors,
                           colormap=colormap,
                           # facecolor="white",
@@ -1413,7 +1418,7 @@ def stacked_bar_plot(dataframe,
                            width=bar_width,
                           )
     
-    
+    if not ax: ax = ax1
     ax.set_facecolor("white")
     
     fig = plt.gcf()
@@ -1512,6 +1517,7 @@ def stacked_bar_plot(dataframe,
         # right=True,
         width=1,
         labelsize=xticks_fontsize,
+        colors=xticks_fontcolor,
         )
     
     
