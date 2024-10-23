@@ -98,6 +98,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   extend_cmap='neither',
                                   cmap_over_color=None,
                                   cmap_under_color=None,
+                                  label_over_color=None,
+                                  label_under_color=None,
                                   cbar_ticks=None,
                                   z_marker_color='b',
                                   z_marker_type='v',
@@ -118,6 +120,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   
                                   default_fontsize=12.,
                                   units_on_newline = (True, True, False, False), # x,y,z,w
+                                  units_opening_brackets = [" [",] * 4,
+                                  units_closing_brackets = ["]",] * 4,
                                   manual_clabels_regular={}, # clabel: (x,y)
                                   manual_clabels_comparison_range={},# clabel: (x,y)
                                   contourplot_facecolor=np.array([None, None, None]),
@@ -143,6 +147,11 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
     
     results = np.array(w_data_vs_x_y_at_multiple_z)
     
+    for i in range(len(units_opening_brackets)):
+        if units_on_newline[i]:
+            units_opening_brackets[i].replace(" ", "")
+            units_opening_brackets[i] = "\n" + units_opening_brackets[i]
+            
     if zoom_data_scale>1:
         results2 = []
         for i in range(len(z_data)):
@@ -174,12 +183,10 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         
         
         ax.xaxis.tick_top()
-        units_opening_brackets = [" [", " [", " [", " ["]
-        for i in range(len(units_opening_brackets)):
-            if units_on_newline:
-                units_opening_brackets[i] = "\n["
+        
+        
                 
-        ax.set_xlabel(z_label + units_opening_brackets[2] + z_units + "]",  
+        ax.set_xlabel(z_label + units_opening_brackets[2] + z_units + units_closing_brackets[2],  
                       fontsize=axis_title_fonts['size']['z'],
                       **fontname)
         ax.set_xticks(z_ticks,
@@ -361,15 +368,11 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         #           fontsize=clabel_fontsize,
         #           colors='black',
         #           )
+        manual_clabels_regular_keys = list(manual_clabels_regular.keys())
+        nonmanual_ticks_levels = [i for i in w_ticks if not i in manual_clabels_regular_keys]
         
         if manual_clabels_regular:
-            manual_clabels_regular_keys = list(manual_clabels_regular.keys())
-            
-            # for i in clabs:
-            #     # breakpoint()
-            #     if i.get_text() in [fmt_clabel(j) for j in manual_clabels_regular_keys]:
-            #         i.remove()
-                    
+
             #redraw relevant lines
             clines2 = ax.contour(x_data_i, y_data_i, results_data_i,
                        levels=manual_clabels_regular_keys,
@@ -377,14 +380,6 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                        linewidths=w_tick_width)
             
             ## draw inline labels over both sets of lines
-            # ax.clabel(clines, 
-            #             manual_clabels_regular_keys,
-            #             fmt=fmt_clabel, 
-            #           fontsize=clabel_fontsize,
-            #           colors='black',
-            #           inline=True,
-            #           manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
-            #           )
             ax.clabel(clines2, 
                        manual_clabels_regular_keys,
                        fmt=fmt_clabel, 
@@ -393,36 +388,74 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       inline=True,
                       manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
                       )
-            
-            nonmanual_ticks_levels = [i for i in w_ticks if not i in manual_clabels_regular_keys]
-            
-            # breakpoint()
-            if not len(w_ticks) == len(manual_clabels_regular_keys):
-                clines = ax.contour(x_data_i, y_data_i, results_data_i,
-                           levels=nonmanual_ticks_levels,
-                            colors='black',
-                            # colors=None,
-                           linewidths=w_tick_width)
-                
-                # clabs = ax.clabel(clines, 
-                #            nonmanual_ticks_levels,
-                #            fmt=fmt_clabel, 
-                #           fontsize=clabel_fontsize,
-                #           colors='black',
-                #           )
         
-        else:
-            clines = ax.contour(x_data_i, y_data_i, results_data_i,
-                       levels=w_ticks,
-                        colors='black',
-                        # colors=None,
-                       linewidths=w_tick_width)
             
-            clabs = ax.clabel(clines, 
-                       w_ticks,
+            # nonmanual_ticks_levels = [i for i in w_ticks if not i in manual_clabels_regular_keys]
+            # if not len(w_ticks) == len(manual_clabels_regular_keys):
+            #     clines = ax.contour(x_data_i, y_data_i, results_data_i,
+            #                levels=nonmanual_ticks_levels,
+            #                 colors='black',
+            #                 # colors=None,
+            #                linewidths=w_tick_width)
+                
+            #     # clabs = ax.clabel(clines, 
+            #     #            nonmanual_ticks_levels,
+            #     #            fmt=fmt_clabel, 
+            #     #           fontsize=clabel_fontsize,
+            #     #           colors='black',
+            #     #           )
+        
+
+        
+        # else:
+            
+        # automatic lines and labels
+        clines = ax.contour(x_data_i, y_data_i, results_data_i,
+                   levels=nonmanual_ticks_levels,
+                    colors='black',
+                    # colors=None,
+                   linewidths=w_tick_width)
+        
+        clabs = ax.clabel(clines, 
+                   nonmanual_ticks_levels,
+                   fmt=fmt_clabel, 
+                  fontsize=clabel_fontsize,
+                  colors='black',
+                  )
+        
+        if label_over_color:
+            nonmanual_ticks_levels.remove(w_ticks[-1])
+            location_from_auto_labeling = (clabs[-1]._x, clabs[-1]._y)
+            #redraw relevant lines
+            clines2 = ax.contour(x_data_i, y_data_i, results_data_i,
+                       levels=[w_ticks[-1]],
+                        colors='black',
+                       linewidths=w_tick_width)
+            ## draw inline labels over both sets of lines
+            ax.clabel(clines2, 
+                       [w_ticks[-1]],
                        fmt=fmt_clabel, 
                       fontsize=clabel_fontsize,
-                      colors='black',
+                      colors=label_over_color,
+                      inline=True,
+                      manual=[location_from_auto_labeling],
+                      )
+        if label_under_color:
+            nonmanual_ticks_levels.remove(w_ticks[0])
+            location_from_auto_labeling = (clabs[0]._x, clabs[0]._y)
+            #redraw relevant lines
+            clines2 = ax.contour(x_data_i, y_data_i, results_data_i,
+                       levels=[w_ticks[0]],
+                        colors='black',
+                       linewidths=w_tick_width)
+            ## draw inline labels over both sets of lines
+            ax.clabel(clines2, 
+                       [w_ticks[0]],
+                       fmt=fmt_clabel, 
+                      fontsize=clabel_fontsize,
+                      colors=label_under_color,
+                      inline=True,
+                      manual=[location_from_auto_labeling],
                       )
         
         if not list(comparison_range)==[]:
@@ -449,10 +482,10 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                           colors='black',
                           )
         
-        ax.set_ylabel(y_label + units_opening_brackets[1] + y_units + "]",  
+        ax.set_ylabel(y_label + units_opening_brackets[1] + y_units + units_closing_brackets[1],  
                       fontsize=axis_title_fonts['size']['y'],
                       **fontname)
-        ax.set_xlabel(x_label + units_opening_brackets[0] + x_units + "]", 
+        ax.set_xlabel(x_label + units_opening_brackets[0] + x_units + units_closing_brackets[0], 
                       fontsize=axis_title_fonts['size']['x'],
                       **fontname)
         
@@ -525,7 +558,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                             cax=cax, 
                      ticks = cbar_ticks)
         
-        cbar.set_label(label=w_label + units_opening_brackets[3] + w_units + "]", 
+        cbar.set_label(label=w_label + units_opening_brackets[3] + w_units + units_closing_brackets[3], 
                                               size=axis_title_fonts['size']['w'],
                                               loc='center',
                                               **fontname
@@ -583,6 +616,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         
         ax.set_title(' ', fontsize=gap_between_figures)
 
+        ax.set_axisbelow(False)
+        
         plt.savefig(f'./{animated_contourplot_filename}_frame_{z_index}.png', 
                     transparent = False,  
                     facecolor = 'white',
@@ -1194,6 +1229,7 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
                           show=False,
                           n_cols_subplots=1,
                           xticks_fontcolor='black',
+                          rotate_xticks=0.
                           ):
     n_boxes = 1. if not hasattr(uncertainty_data[0], '__iter__') else len(uncertainty_data)
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
@@ -1358,6 +1394,9 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
     ax.xaxis.labelpad = xlabelpad
     ax.tick_params(axis='x', which='major', pad=xlabelpad)
     
+    for label in ax.get_xticklabels():
+        label.set_rotation(rotate_xticks)
+        
     # ax.set_ylim(min(y_ticks), max(y_ticks))
 
 
@@ -1400,6 +1439,7 @@ def stacked_bar_plot(dataframe,
                        subplot_padding = 5,
                        bar_width=0.6,
                        xticks_fontcolor='black',
+                       rotate_xticks=0.,
                        ):
     # axs = plt.subplot(1, 2, 2,
     #                         # gridspec_kw=gridspec_kw,
@@ -1416,10 +1456,12 @@ def stacked_bar_plot(dataframe,
                           # facecolor="white",
                            # use_index=False,
                            ax=ax,
-                          rot=0,
+                          # rot=rotate_xticks,
                            width=bar_width,
                           )
-    
+    # ax1.xticks(rotation=rotate_xticks)
+      # label.set_ha('right')
+  
     if not ax: ax = ax1
     ax.set_facecolor("white")
     
@@ -1596,7 +1638,10 @@ def stacked_bar_plot(dataframe,
                     xycoords='axes fraction',
                      # transform=plt.gcf().transFigure,
                      )
-            
+    
+    for label in ax1.get_xticklabels():
+        label.set_rotation(rotate_xticks)
+      
     plt.savefig(filename+'.png', dpi=dpi, bbox_inches='tight',
                 facecolor=fig.get_facecolor(),
                 transparent=False)
