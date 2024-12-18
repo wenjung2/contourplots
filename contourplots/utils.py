@@ -110,6 +110,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   n_loops='inf', # the number of times the animated contourplot should loop animation over z; infinite by default
                                   animated_contourplot_filename='animated_contourplot',
                                   keep_frames=False, # leaves frame PNG files undeleted after running; False by default
+                                  keep_gifs=True, # saves GIF files; True by default
                                   n_minor_ticks = 1,
                                   cbar_n_minor_ticks = 4,
                                   comparison_range=[],
@@ -142,13 +143,22 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   fill_bottom_with_cmap_over_color=False,
                                   bottom_fill_bounds=None,
                                   add_shapes = {},
+                                  round_xticks_to=1,
+                                  round_yticks_to=0,
+                                  include_top_bar=True,
+                                  include_cbar=True,
+                                  include_axis_labels=True,
+                                  include_x_axis_ticklabels=True,
+                                  include_y_axis_ticklabels=True,
+                                  show_top_ticklabels=True,
+                                  fig_ax_to_use=None, # only used when include_top_bar is False. If fig_ax_to_use is provided, images and gifs are not saved.
                                   ):
     
     
     results = np.array(w_data_vs_x_y_at_multiple_z)
     
     for i in range(len(units_opening_brackets)):
-        if units_on_newline[i]:
+        if units_on_newline[i] and not ("\n" in units_opening_brackets[i]):
             units_opening_brackets[i].replace(" ", "")
             units_opening_brackets[i] = "\n" + units_opening_brackets[i]
             
@@ -171,35 +181,46 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
     plt.rcParams['font.size'] = str(default_fontsize)
     def create_frame(z_index):
-        fig, axs = plt.subplots(2, 1, constrained_layout=True, 
-                                gridspec_kw=gridspec_kw)
-        fig.set_figwidth(figwidth)
-        ax = axs[0]
-        a = [z_data[z_index]]
-        ax.hlines(1,1,1)
-        ax.set_xlim(min(z_ticks), max(z_ticks))
-        ax.set_ylim(0.5,1.5)
+        fig, axs, ax = None, None, None
         
+        if include_top_bar:
+            fig, axs = plt.subplots(2, 1, constrained_layout=True, 
+                                    gridspec_kw=gridspec_kw)
+            fig.set_figwidth(figwidth)
+            ax = axs[0]
+            a = [z_data[z_index]]
+            ax.hlines(1,1,1)
+            ax.set_xlim(min(z_ticks), max(z_ticks))
+            ax.set_ylim(0.5,1.5)
+            ax.xaxis.tick_top()
+            if include_axis_labels:
+                ax.set_xlabel(z_label + units_opening_brackets[2] + z_units + units_closing_brackets[2],  
+                              fontsize=axis_title_fonts['size']['z'],
+                              **fontname)
+            ax.set_xticks(z_ticks,
+                          **fontname)
         
+            y = np.ones(np.shape(a))
+            ax.plot(a,y,
+                    color=z_marker_color, 
+                    marker=z_marker_type,
+                    ms = 7,)
+            ax.axes.get_yaxis().set_visible(False)
+            ax.tick_params(labelsize=axis_tick_fontsize)
+            ax = axs[1]
         
-        ax.xaxis.tick_top()
+        elif fig_ax_to_use is None:
+            fig, axs = plt.subplots(1, 1, constrained_layout=True, 
+                                    # gridspec_kw=gridspec_kw,
+                                    )
+            fig.set_figwidth(figwidth)
+            axs = [axs]
+            ax = axs[0]
         
-        
-                
-        ax.set_xlabel(z_label + units_opening_brackets[2] + z_units + units_closing_brackets[2],  
-                      fontsize=axis_title_fonts['size']['z'],
-                      **fontname)
-        ax.set_xticks(z_ticks,
-                      **fontname)
-    
-        y = np.ones(np.shape(a))
-        ax.plot(a,y,
-                color=z_marker_color, 
-                marker=z_marker_type,
-                ms = 7,)
-        ax.axes.get_yaxis().set_visible(False)
-        ax.tick_params(labelsize=axis_tick_fontsize)
-        ax = axs[1]
+        else:
+            fig, ax = fig_ax_to_use
+            if figwidth is not None: fig.set_figwidth(figwidth)
+            
         if cmap_over_color is not None:
             cmap.set_over(cmap_over_color)
         if cmap_under_color is not None:
@@ -416,12 +437,15 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                     # colors=None,
                    linewidths=w_tick_width)
         
-        clabs = ax.clabel(clines, 
-                   nonmanual_ticks_levels,
-                   fmt=fmt_clabel, 
-                  fontsize=clabel_fontsize,
-                  colors='black',
-                  )
+        try:
+            clabs = ax.clabel(clines, 
+                       nonmanual_ticks_levels,
+                       fmt=fmt_clabel, 
+                      fontsize=clabel_fontsize,
+                      colors='black',
+                      )
+        except:
+            pass
         
         if label_over_color:
             nonmanual_ticks_levels.remove(w_ticks[-1])
@@ -457,38 +481,41 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       inline=True,
                       manual=[location_from_auto_labeling],
                       )
+        try:
+            if not list(comparison_range)==[]:
+                clines3 = ax.contour(x_data_i, y_data_i, results_data_i,
+                           levels=comparison_range,
+                            colors='white',
+                           linewidths=w_tick_width,
+                           # zorder=199,
+                           )
+                
+                if manual_clabels_comparison_range:
+                    ax.clabel(clines3, 
+                               comparison_range,
+                               fmt=fmt_clabel, 
+                              fontsize=clabel_fontsize,
+                              colors='black',
+                              manual=[manual_clabels_comparison_range[i] for i in comparison_range],
+                              )
+                else:
+                    ax.clabel(clines3, 
+                               comparison_range,
+                               fmt=fmt_clabel, 
+                              fontsize=clabel_fontsize,
+                              colors='black',
+                              )
+        except:
+            pass
         
-        if not list(comparison_range)==[]:
-            clines3 = ax.contour(x_data_i, y_data_i, results_data_i,
-                       levels=comparison_range,
-                        colors='white',
-                       linewidths=w_tick_width,
-                       # zorder=199,
-                       )
-            
-            if manual_clabels_comparison_range:
-                ax.clabel(clines3, 
-                           comparison_range,
-                           fmt=fmt_clabel, 
-                          fontsize=clabel_fontsize,
-                          colors='black',
-                          manual=[manual_clabels_comparison_range[i] for i in comparison_range],
-                          )
-            else:
-                ax.clabel(clines3, 
-                           comparison_range,
-                           fmt=fmt_clabel, 
-                          fontsize=clabel_fontsize,
-                          colors='black',
-                          )
-        
-        ax.set_ylabel(y_label + units_opening_brackets[1] + y_units + units_closing_brackets[1],  
-                      fontsize=axis_title_fonts['size']['y'],
-                      **fontname)
-        ax.set_xlabel(x_label + units_opening_brackets[0] + x_units + units_closing_brackets[0], 
-                      fontsize=axis_title_fonts['size']['x'],
-                      **fontname)
-        
+        if include_axis_labels:
+            ax.set_ylabel(y_label + units_opening_brackets[1] + y_units + units_closing_brackets[1],  
+                          fontsize=axis_title_fonts['size']['y'],
+                          **fontname)
+            ax.set_xlabel(x_label + units_opening_brackets[0] + x_units + units_closing_brackets[0], 
+                          fontsize=axis_title_fonts['size']['x'],
+                          **fontname)
+
         ax.set_xticks(x_ticks)
         ax.set_yticks(y_ticks)
         
@@ -545,113 +572,162 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       colors=comparison_lines_colors,
                       )
                       
-        divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.1)
         
         norm = mpl.colors.BoundaryNorm(w_levels, cmap.N, extend=extend_cmap)
         
         # if not cbar_ticks:
         #     cbar_ticks = w_levels
-        cbar = plt.colorbar(
-                            mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
-                            # im,
-                            cax=cax, 
-                     ticks = cbar_ticks)
         
-        cbar.set_label(label=w_label + units_opening_brackets[3] + w_units + units_closing_brackets[3], 
-                                              size=axis_title_fonts['size']['w'],
-                                              loc='center',
-                                              **fontname
-                                              )
-        
-        
-        # cbar.ax.set_minor_locator(AutoMinorLocator(cbar_n_minor_ticks+1))
-        cbar.ax.minorticks_on()
-        
-        # set minor ticks
-        curr_major_ticks = [float(i) for i in cbar.get_ticks(minor=False)]
-        n_major_ticks = len(curr_major_ticks)
-        major_tick_step_size = curr_major_ticks[1] - curr_major_ticks[0]
-        minor_tick_step_size = major_tick_step_size/(1+cbar_n_minor_ticks)
-        curr_tick =  curr_major_ticks[0]
-        curr_minor_ticks = []
-        while curr_tick<curr_major_ticks[-1]:
-            curr_tick+=minor_tick_step_size
-            if curr_tick not in curr_major_ticks:
-                curr_minor_ticks.append(curr_tick)
-        cbar.set_ticks(curr_minor_ticks, minor=True)
-        #
-        
-        cbar.ax.tick_params(
-            axis='y',          # changes apply to the x-axis
-            which='both',      # both major and minor ticks are affected
-            direction='inout',
-            # right=True,
-            width=0.65,
-            labelsize=axis_tick_fontsize,
-            )
-        cbar.ax.tick_params(
-            axis='x',          
-            which='major',      
-            length=7,
-            )
-
-        cbar.ax.tick_params(
-            axis='x',          
-            which='minor',      
-            length=3.5,
-            )
-        # plt.rcParams['hatch.linewidth'] = 0.6
-        # plt.rcParams['hatch.color'] = 'white'
-        cbar.ax.fill_betweenx(comparison_range,
-                              # cbar.ax.get_xlim()[0],cbar.ax.get_xlim()[1],
-                              -1, 2,
-                           facecolor='none', 
-                           hatch=comparison_range_hatch_pattern,
-                            # zorder=200,
-                            linewidth=0.6,
-                            edgecolor='white',
-                           # alpha=0.,
-                           )
+        if include_cbar:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.1)
+            cbar = plt.colorbar(
+                                mpl.cm.ScalarMappable(norm=norm, cmap=cmap),
+                                # im,
+                                cax=cax, 
+                         ticks = cbar_ticks)
+            
+            cbar.set_label(label=w_label + units_opening_brackets[3] + w_units + units_closing_brackets[3], 
+                                                  size=axis_title_fonts['size']['w'],
+                                                  loc='center',
+                                                  **fontname
+                                                  )
+            
+            
+            # cbar.ax.set_minor_locator(AutoMinorLocator(cbar_n_minor_ticks+1))
+            cbar.ax.minorticks_on()
+            
+            # set minor ticks
+            curr_major_ticks = [float(i) for i in cbar.get_ticks(minor=False)]
+            n_major_ticks = len(curr_major_ticks)
+            major_tick_step_size = curr_major_ticks[1] - curr_major_ticks[0]
+            minor_tick_step_size = major_tick_step_size/(1+cbar_n_minor_ticks)
+            curr_tick =  curr_major_ticks[0]
+            curr_minor_ticks = []
+            while curr_tick<curr_major_ticks[-1]:
+                curr_tick+=minor_tick_step_size
+                if curr_tick not in curr_major_ticks:
+                    curr_minor_ticks.append(curr_tick)
+            cbar.set_ticks(curr_minor_ticks, minor=True)
+            #
+            
+            cbar.ax.tick_params(
+                axis='y',          # changes apply to the x-axis
+                which='both',      # both major and minor ticks are affected
+                direction='inout',
+                # right=True,
+                width=0.65,
+                labelsize=axis_tick_fontsize,
+                )
+            cbar.ax.tick_params(
+                axis='x',          
+                which='major',      
+                length=7,
+                )
+    
+            cbar.ax.tick_params(
+                axis='x',          
+                which='minor',      
+                length=3.5,
+                )
+            # plt.rcParams['hatch.linewidth'] = 0.6
+            # plt.rcParams['hatch.color'] = 'white'
+            cbar.ax.fill_betweenx(comparison_range,
+                                  # cbar.ax.get_xlim()[0],cbar.ax.get_xlim()[1],
+                                  -1, 2,
+                               facecolor='none', 
+                               hatch=comparison_range_hatch_pattern,
+                                # zorder=200,
+                                linewidth=0.6,
+                                edgecolor='white',
+                               # alpha=0.,
+                               )
         
         ax.set_title(' ', fontsize=gap_between_figures)
 
         ax.set_axisbelow(False)
         
-        plt.savefig(f'./{animated_contourplot_filename}_frame_{z_index}.png', 
-                    transparent = False,  
-                    facecolor = 'white',
-                    bbox_inches='tight',
-                    dpi=dpi,
-                    )                                
-        plt.close()
-        
-        
-    for z_index in range(len(z_data)):
-        create_frame(z_index)
-          
-    frames = []
-    for z_index in range(len(z_data)):
-        image = imageio.v2.imread(f'./{animated_contourplot_filename}_frame_{z_index}.png')
-        frames.append(image)
-    
-    
-    if n_loops==('inf' or 'infinite' or 'infinity' or np.inf):
-        imageio.mimsave('./' + animated_contourplot_filename + '.gif',
-                        frames,
-                        fps=fps,
-                        ) 
-    else:
-        imageio.mimsave('./' + animated_contourplot_filename + '.gif',
-                        frames,
-                        fps=fps,
-                        loop=n_loops,
-                        ) 
-    
-    if not keep_frames:
-        for z_index in range(len(z_data)):
-            os.remove(f'./{animated_contourplot_filename}_frame_{z_index}.png')
+        def round_to(val, round_to):
+            if isinstance(val, str):
+                return val
+            else:
+                if round_to<1:
+                    return int(np.round(val,round_to))
+                else:
+                    return np.round(val,round_to)
+                
+                        
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda val, pos: f'{round_to(val,round_xticks_to)}'))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: f'{round_to(val,round_yticks_to)}'))
+            
+        if not show_top_ticklabels: # !!! Update rounding methods
+            xticks_new = [round_to(i,round_xticks_to) for i in x_ticks.copy()]
+            xticks_new[-1] = ''
+            ax.set_xticklabels(xticks_new)
+            yticks_new = [round_to(i,round_yticks_to) for i in y_ticks.copy()]
+            yticks_new[-1] = ''
+            ax.set_yticklabels(yticks_new)
+            
+        if not include_x_axis_ticklabels:
+            ax.set_xticklabels([])
+            
+        if not include_y_axis_ticklabels:
+            ax.set_yticklabels([])
 
+
+        if fig_ax_to_use is None:
+            plt.savefig(f'./{animated_contourplot_filename}_frame_{z_index}.png', 
+                        transparent = False,  
+                        facecolor = 'white',
+                        bbox_inches='tight',
+                        dpi=dpi,
+                        )                                
+            plt.close()
+        return fig, axs
+        
+    
+    fig_list, axs_list = [], []
+    for z_index in range(len(z_data)):
+        fig, axs = create_frame(z_index)
+        fig_list.append(fig)
+        axs_list.append(axs)
+    
+    if fig_ax_to_use is None:
+        frames = []
+        for z_index in range(len(z_data)):
+            image = imageio.v2.imread(f'./{animated_contourplot_filename}_frame_{z_index}.png')
+            frames.append(image)
+        
+        
+        if keep_gifs:
+            if n_loops==('inf' or 'infinite' or 'infinity' or np.inf):
+                imageio.mimsave('./' + animated_contourplot_filename + '.gif',
+                                frames,
+                                fps=fps,
+                                ) 
+                frames.reverse()
+                imageio.mimsave('./' + 'reverse_'+animated_contourplot_filename + '.gif',
+                                frames,
+                                fps=fps,
+                                ) 
+            else:
+                imageio.mimsave('./' + animated_contourplot_filename + '.gif',
+                                frames,
+                                fps=fps,
+                                loop=n_loops,
+                                ) 
+                frames.reverse()
+                imageio.mimsave('./' + 'reverse_'+animated_contourplot_filename + '.gif',
+                                frames,
+                                fps=fps,
+                                loop=n_loops,
+                                ) 
+        
+        if not keep_frames:
+            for z_index in range(len(z_data)):
+                os.remove(f'./{animated_contourplot_filename}_frame_{z_index}.png')
+    
+    return fig_list, axs_list
 
 #%% Animated barplot
 
