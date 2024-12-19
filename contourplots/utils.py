@@ -145,6 +145,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                   add_shapes = {},
                                   round_xticks_to=1,
                                   round_yticks_to=0,
+                                  inline_spacing=5.,
                                   include_top_bar=True,
                                   include_cbar=True,
                                   include_axis_labels=True,
@@ -388,6 +389,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         #            fmt=fmt_clabel, 
         #           fontsize=clabel_fontsize,
         #           colors='black',
+        #           inline_spacing=inline_spacing,
         #           )
         manual_clabels_regular_keys = list(manual_clabels_regular.keys())
         nonmanual_ticks_levels = [i for i in w_ticks if not i in manual_clabels_regular_keys]
@@ -407,7 +409,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       fontsize=clabel_fontsize,
                       colors='black',
                       inline=True,
-                      manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys]
+                      manual=[manual_clabels_regular[i] for i in manual_clabels_regular_keys],
+                      inline_spacing=inline_spacing,
                       )
         
             
@@ -424,6 +427,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
             #     #            fmt=fmt_clabel, 
             #     #           fontsize=clabel_fontsize,
             #     #           colors='black',
+            #     #           inline_spacing=inline_spacing,
             #     #           )
         
 
@@ -443,6 +447,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                        fmt=fmt_clabel, 
                       fontsize=clabel_fontsize,
                       colors='black',
+                      inline_spacing=inline_spacing,
                       )
         except:
             pass
@@ -463,6 +468,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       colors=label_over_color,
                       inline=True,
                       manual=[location_from_auto_labeling],
+                      inline_spacing=inline_spacing,
                       )
         if label_under_color:
             nonmanual_ticks_levels.remove(w_ticks[0])
@@ -480,6 +486,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                       colors=label_under_color,
                       inline=True,
                       manual=[location_from_auto_labeling],
+                      inline_spacing=inline_spacing,
                       )
         try:
             if not list(comparison_range)==[]:
@@ -497,6 +504,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                               fontsize=clabel_fontsize,
                               colors='black',
                               manual=[manual_clabels_comparison_range[i] for i in comparison_range],
+                              inline_spacing=inline_spacing,
                               )
                 else:
                     ax.clabel(clines3, 
@@ -504,6 +512,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                                fmt=fmt_clabel, 
                               fontsize=clabel_fontsize,
                               colors='black',
+                              inline_spacing=inline_spacing,
                               )
         except:
             pass
@@ -570,6 +579,7 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
                        fmt=fmt_clabel, 
                       fontsize=clabel_fontsize,
                       colors=comparison_lines_colors,
+                      inline_spacing=inline_spacing,
                       )
                       
         
@@ -1305,7 +1315,9 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
                           show=False,
                           n_cols_subplots=1,
                           xticks_fontcolor='black',
-                          rotate_xticks=0.
+                          rotate_xticks=0.,
+                          background_fill_colors=None,
+                          background_fill_alphas=None,
                           ):
     n_boxes = 1. if not hasattr(uncertainty_data[0], '__iter__') else len(uncertainty_data)
     plt.rcParams['font.sans-serif'] = "Arial Unicode"
@@ -1387,7 +1399,8 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
             direction='inout',
             length=5,
             width=1,
-            labelbottom=False if x_tick_labels is None else True)
+            labelbottom=False if x_tick_labels is None else True,
+            zorder=5,)
     
     if show_x_ticks and (x_tick_labels is not None):
         ax.set_xticks(ticks=list(range(1,n_boxes+1)), 
@@ -1404,18 +1417,21 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
         # right=True,
         width=1,
         labelsize=yticks_fontsize,
+        zorder=5,
         )
 
     ax.tick_params(
         axis='y',          
         which='major',      
         length=5,
+        zorder=5,
         )
 
     ax.tick_params(
         axis='y',          
         which='minor',      
         length=3,
+        zorder=5,
         )
 
     ax2 = ax.twinx()
@@ -1475,8 +1491,31 @@ def box_and_whiskers_plot(uncertainty_data, # either an iterable of uncertainty 
         
     # ax.set_ylim(min(y_ticks), max(y_ticks))
 
-
-
+    if background_fill_colors is not None:
+        if background_fill_alphas is None: background_fill_alphas = [1]*len(background_fill_colors)
+        # ax.fill_betweenx(y_ticks, -1, 0, 
+        #                  color=background_fill_colors[0], 
+        #                  alpha=background_fill_alphas[0],
+        #                  zorder=2,)
+        curr_xtick = 0.5
+        for bg_col, bg_alpha in zip(
+                                 # range(1, len(background_fill_colors)+1), 
+                                 # np.linspace(0.5, len(background_fill_colors)+1, len(background_fill_colors)),
+                                 background_fill_colors,
+                                 background_fill_alphas):
+            ax.fill_betweenx(y_ticks, 
+                             curr_xtick, 
+                             curr_xtick+1,
+                             color=bg_col, alpha=bg_alpha,
+                             zorder=2,
+                             edgecolor="none", linewidth=0.0)
+            curr_xtick += 1
+        # ax.fill_betweenx(y_ticks, -1, 0, 
+        #                  color=background_fill_colors[0], 
+        #                  alpha=background_fill_alphas[0],
+        #                  zorder=2,)
+    
+    ax.tick_params(axis='both', which='both', zorder=10)
     plt.savefig(filename+'.png', dpi=dpi)
     
     if show: plt.show()
