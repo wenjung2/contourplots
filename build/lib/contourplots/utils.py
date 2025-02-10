@@ -459,6 +459,8 @@ def animated_contourplot(w_data_vs_x_y_at_multiple_z, # shape = z * x * y
         ax.set_xticks(x_ticks)
         ax.set_yticks(y_ticks)
         
+        plt.rcParams["axes.axisbelow"] = False
+        
         if not contourplot_facecolor.all()==None:
             ax.set_facecolor(contourplot_facecolor)
         
